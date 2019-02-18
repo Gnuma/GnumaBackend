@@ -1,0 +1,3 @@
+**/migrations
+#ignore Pipfile.lock
+*.lock
