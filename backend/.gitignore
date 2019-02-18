@@ -1,3 +1,4 @@
 **/migrations
 #ignore Pipfile.lock
 *.lock
+.vscode
