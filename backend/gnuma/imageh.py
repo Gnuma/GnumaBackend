@@ -29,11 +29,16 @@ class ImageHandler:
 
     def open(self, *args, **kwargs):
         n = str(Ad.objects.filter(seller = GnumaUser.objects.get(user=self.user)).count())
-        f = open(r''.join([settings.IMAGES_DIR, self.user.username, '/',(''.join([self.filename, n, self.content_type]))]) , "wb")
+
+        try:
+            f = open(r''.join([settings.IMAGES_DIR, self.user.username, '/',(''.join([self.filename, n, self.content_type]))]) , "wb")
+        except Exception as e:
+            raise e
+
         for byte in self.content.chunks():
             f.write(byte)
         f.close()
-        return None
+        return ''.join([self.filename, n, self.content_type]) 
     
     def resize(self, *args, **kwargs):
         pass
