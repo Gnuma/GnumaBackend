@@ -31,7 +31,7 @@ Each time a user wants to create an item he must issues two different requests:
 
 2) The second one will eventually relate the image, which has been previously uploaded, to the a new item.
 
-This dict enable these two queries to exchange informations.                                        
+This dict enable these two endpoints to exchange informations.                                        
 
 '''
 
@@ -50,15 +50,15 @@ def init_user(request):
     try:
         token = Token.objects.get(key = request.data['key'])
     except Token.DoesNotExist:
-        return HttpResponse(status = status.HTTP_400_BAD_REQUEST)
+        return HttpResponse('key does not exist', status = status.HTTP_400_BAD_REQUEST)
     user = User.objects.get(username = token.user)
     classM = request.data['classM'] 
     try:
         office = Office.objects.get(name=request.data['office'])
     except Office.DoesNotExist:
-        return HttpResponse(status = status.HTTP_400_BAD_REQUEST)
+        return HttpResponse("office does not exist", status = status.HTTP_400_BAD_REQUEST)
     if len(classM) != 2:
-        return HttpResponse(status = status.HTTP_400_BAD_REQUEST)
+        return HttpResponse('class: format-error', status = status.HTTP_400_BAD_REQUEST)
     grade = classM[0]
     division = classM[1]
     try:
@@ -83,7 +83,6 @@ def init_user(request):
 
 '''
 Must be tested
-
 '''
 @api_view(['POST',])
 @authentication_classes([TokenAuthentication,])
@@ -105,14 +104,19 @@ def upload_image(request, filename, format = None):
     IS FILE SIZE ACCEPTABLE ?
     '''
     global ImageQueue
-    if ImageQueue.get(request.user.username, True):
-        ImageQueue[request.user.username] = filename
-    else:
-        return JsonResponse({'detail':'this user has already uploaded an image!'}, status = status.HTTP_409_CONFLICT)
 
-    handler = ImageHandler(filename = filename, content = request.data['file'], user = request.user, content_type = request.content_type)
-    handler.open()
+    if ImageQueue.get(request.user.username, False):
+        return JsonResponse({'detail':'this user has already uploaded an image!'}, status = status.HTTP_409_CONFLICT)
+    try:
+        handler = ImageHandler(filename = filename, content = request.data['file'], user = request.user, content_type = request.content_type)
+        filename = handler.open()
+        ImageQueue[request.user.username] = request.build_absolute_uri(r''.join(('/',settings.IMAGES_URL, request.user.username,'/', filename)))
+    except Exception:
+        ImageQueue.pop(request.user.username)
+        return JsonResponse({'detail' : 'something went wrong!'}, status = status.HTTP_400_BAD_REQUEST)
+    
     return HttpResponse(status = status.HTTP_201_CREATED)
+    
     
     
     
