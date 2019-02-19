@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import GnumaUser, Book, Office, Class, Ad
+from .models import GnumaUser, Book, Office, Class, Ad, Queue_ads
 from django.contrib.auth.models import User
 
 
@@ -50,6 +50,9 @@ class AdSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-'''
-Queue_ads serializer
-'''
+class QueueAdsSerializer(serializers.ModelSerializer):
+    ad = AdSerializer(many = False, read_only = True)
+
+    class Meta:
+        model = Queue_ads
+        fields = '__all__'
