@@ -17,7 +17,7 @@ from rest_framework.parsers import FileUploadParser
 
 # Local imports
 from .models import GnumaUser, Book, Office, Class, Ad, Queue_ads
-from .serializers import BookSerializer, AdSerializer
+from .serializers import BookSerializer, AdSerializer, QueueAdsSerializer
 from .imageh import ImageHandler
 from .doubleCheckLayer import DoubleCheck
 
@@ -218,13 +218,19 @@ class AdManager(viewsets.GenericViewSet):
     '''
     def enqueue(self, request):
         user = GnumaUser.objects.get(user = request.user)
-        instance = {'title': request.data['title'], 'isbn': request.data['isbn'],'price': request.data['price'], 'seller': user, 'enabled': False}
+        image = ImageQueue.pop(request.user.username, None)
+        instance = {'title': request.data['title'], 'price': request.data['price'], 'seller': user, 'enabled': False, 'image': image}
         if not self.get_serializer_class()(data = instance).is_valid():
             return HttpResponse(status = status.HTTP_400_BAD_REQUEST)
         enqueued = Ad.objects.create(**instance)
-        enqueued.save()
-        # QUEUE_ADS IS VALID ?
-        enqueued = Queue_ads(ad = enqueued, book_title = request.data['book_title'])  
+        instance = {'ad': enqueued, 'book_title': request.data['book_title'], 'isbn': request.data['isbn']}
+        try:
+            QueueAdsSerializer(data = instance).is_valid(raise_exception = True)
+        except (ValidationError, TypeError) as e:
+            print(str(e))
+            return JsonResponse({'detail':'data is not valid!'}, status = status.HTTP_400_BAD_REQUEST)
+        e = Queue_ads.objects.create(**instance)  
+        e.save()
         enqueued.save()
         user.adsCreated = user.adsCreated+1
         user.save()
@@ -268,7 +274,7 @@ class AdManager(viewsets.GenericViewSet):
         try: 
             book = Book.objects.get(isbn = request.data['isbn'])
         except Book.DoesNotExist:
-            return JsonResponse({'detail':'something went wrong'}, status = status.HTTP_400_BAD_REQUEST)
+            return JsonResponse({'detail':'the book does not exist'}, status = status.HTTP_400_BAD_REQUEST)
 
         image = ImageQueue.pop(request.user.username, None)
         instance = {'title': request.data['title'], 'image': image,'price': request.data['price'], 'book': book, 'seller': user}
