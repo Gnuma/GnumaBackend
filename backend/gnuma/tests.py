@@ -12,7 +12,8 @@ from rest_framework.authtoken.models import Token
 
 # Local imports
 from gnuma.views import upload_image
-from gnuma.models import Office, Class, GnumaUser, Book, Ad
+from .serializers import AdSerializer
+from gnuma.models import Office, Class, GnumaUser, Book, Ad, Queue_ads
 
 
 '''
@@ -190,15 +191,19 @@ class AdManagerTest(APITestCase):
         #
         # Default objects.
         #
-        user = User.objects.create_user(username = 'test', email = 'test@test.it', password = 'test')
-        Token.objects.create(user = user, key = '12345')
+        self.user = User.objects.create_user(username = 'test', email = 'test@test.it', password = 'test')
+        Token.objects.create(user = self.user, key = '12345')
         Office.objects.create(name = 'Neumann', cap = '00100', level = Office.SP)
+        for u in User.objects.all():
+            print('username: %s' % u.username)
         #
         # request to init_user
         #
         url = reverse('init-user')
         data = {'key':'12345', 'classM': '5B', 'office': 'Neumann'}
         self.client.post(url, data)
+        for g in GnumaUser.objects.all():
+            print('gnumauser: %s' % g.user.username)
         #
         # Create Book object
         #
@@ -213,6 +218,13 @@ class AdManagerTest(APITestCase):
         #
         #  Create Ad object
         #
+        seller = GnumaUser.objects.all()
+        instance = {'title' : 'Retrieve test', 'price' : '45', 'seller' : seller[0], 'enabled' : True}
+        self.assertEqual(AdSerializer(data = instance).is_valid(), True)
+        ad = Ad.objects.create(**instance)
+        self.id = ad.pk
+        print('id--->%d ' % ad.pk)
+
 
 
     #
@@ -230,11 +242,256 @@ class AdManagerTest(APITestCase):
         print("The API has issued an %s status code: %s" % (str(response.status_code), response.content))
 
         for ad in Ad.objects.all():
-            print('title: %s  image path: %s  price: %d book: %s seller: %s' % (ad.title, ad.image, ad.price, ad.book.title, ad.seller.user.username))
+            print(repr(ad.__dict__))
+
+        #
+        # Check the number of ads created.
+        #
+        user = GnumaUser.objects.get(user = self.user)
+        print(repr(user.__dict__))
 
 
+    def test_retrieve(self):
 
+        url = reverse('ad-detail', kwargs = {'pk' : self.id})
+        response = self.client.get(url)
+
+        print(response.content)
+
+
+class AdManagerNoImage(APITestCase):
+
+    def setUp(self):
+        #
+        # Default objects.
+        #
+        self.user = User.objects.create_user(username = 'test', email = 'test@test.it', password = 'test')
+        Token.objects.create(user = self.user, key = '12345')
+        Office.objects.create(name = 'Neumann', cap = '00100', level = Office.SP)
+        for u in User.objects.all():
+            print('username: %s' % u.username)
+        #
+        # request to init_user
+        #
+        url = reverse('init-user')
+        data = {'key':'12345', 'classM': '5B', 'office': 'Neumann'}
+        self.client.post(url, data)
+        for g in GnumaUser.objects.all():
+            print('gnumauser: %s' % g.user.username)
+        #
+        # Create Book object
+        #
+        Book.objects.create(title = 'Il canzoniere', author = 'Francesco Petrarca', isbn = '12345')
+
+    def test_create(self):
+        url = reverse('ad-list')
+        self.client.credentials(HTTP_AUTHORIZATION = 'Token 12345')
+        data = {'title': 'Test', 'price' : '33', 'isbn': '12345'}
+        response = self.client.post(url, data)
+        print("The API has issued an %s status code: %s" % (str(response.status_code), response.content))
+
+        for ad in Ad.objects.all():
+            print(repr(ad.__dict__))
+
+        #
+        # Check the number of ads created.
+        #
+        user = GnumaUser.objects.get(user = self.user)
+        print(repr(user.__dict__))
+
+#
+# TestCode #2
+#
+# The following class contains all erroneous requests to the AdManger endpoints.
+#
+class AdManagerFails(APITestCase):
+
+    def setUp(self):
+        #
+        # Default objects.
+        #
+        self.user = User.objects.create_user(username = 'test', email = 'test@test.it', password = 'test')
+        Token.objects.create(user = self.user, key = '12345')
+        Office.objects.create(name = 'Neumann', cap = '00100', level = Office.SP)
+        for u in User.objects.all():
+            print('username: %s' % u.username)
+        #
+        # request to init_user
+        #
+        url = reverse('init-user')
+        data = {'key':'12345', 'classM': '5B', 'office': 'Neumann'}
+        self.client.post(url, data)
+        for g in GnumaUser.objects.all():
+            print('gnumauser: %s' % g.user.username)
+        #
+        # Create Book object
+        #
+        Book.objects.create(title = 'Il canzoniere', author = 'Francesco Petrarca', isbn = '12345')
+        #
+        # Upload image
+        #
+        url = reverse('upload-ad-image', kwargs={'filename':'image'})
+        img = open(r"/home/free_will/Pictures/prgt.png", "rb").read()
+        self.client.credentials(HTTP_AUTHORIZATION = 'Token 12345', CONTENT_TYPE = 'image/png')
+        self.client.post(url, img, content_type = 'image/png')
+        #
+        #  Create Ad object
+        #
+        seller = GnumaUser.objects.all()
+        instance = {'title' : 'Retrieve test', 'price' : '45', 'seller' : seller[0], 'enabled' : True}
+        self.assertEqual(AdSerializer(data = instance).is_valid(), True)
+        ad = Ad.objects.create(**instance)
+        self.id = ad.pk
+        print('id--->%d ' % ad.pk)
+
+
+    def test_create_missing_argument(self):
+
+        url = reverse('ad-list')
+        self.client.credentials(HTTP_AUTHORIZATION = 'Token 12345')
+        data = {'price' : '33', 'isbn': '12345'} # title key is missing
+        response = self.client.post(url, data)
+        print("The API has issued an %s status code: %s" % (str(response.status_code), response.content))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+    def test_create_bad_format(self):
+        url = reverse('ad-list')
+        self.client.credentials(HTTP_AUTHORIZATION = 'Token 12345')
+        data = {'title' : 'test','price' : '3b', 'isbn': '12345'} # prce is not a valid integer
+        response = self.client.post(url, data)
+        print("The API has issued an %s status code: %s" % (str(response.status_code), response.content))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+    def test_create_book_not_found(self):
+
+        url = reverse('ad-list')
+        self.client.credentials(HTTP_AUTHORIZATION = 'Token 12345')
+        data = {'title' : 'test','price' : '33', 'isbn': '1234'} # isbn is not valid
+        response = self.client.post(url, data)
+        print("The API has issued an %s status code: %s" % (str(response.status_code), response.content))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+    def test_create_ad_already_exist(self):
+        #
+        # First request
+        #
+        url = reverse('ad-list')
+        self.client.credentials(HTTP_AUTHORIZATION = 'Token 12345')
+        data = {'title': 'Test', 'price' : '33', 'isbn': '12345'}
+        response = self.client.post(url, data)
+        print("The API has issued an %s status code: %s" % (str(response.status_code), response.content))
+        #
+        # Second request
+        #
+        response = self.client.post(url, data)
+        print("The API has issued an %s status code: %s" % (str(response.status_code), response.content))
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+
+
+    def test_create_limit_reached(self):
+        #
+        # Edit 'ads_created'
+        #
+        gnumaUser = GnumaUser.objects.get( user = self.user )
+        gnumaUser.adsCreated = 10
+        gnumaUser.save()
+        #
+        # Request
+        #
+        url = reverse('ad-list')
         
+        data = {'title': 'Test', 'price' : '33', 'isbn': '12345'}
+        response = self.client.post(url, data)
+        print("The API has issued an %s status code: %s" % (str(response.status_code), response.content))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+#
+# Test enqueue ads.
+# TestCode #2
+#
+class EnqueueAdsTest(APITestCase):
+
+    def setUp(self):
+        #
+        # Default objects.
+        #
+        self.user = User.objects.create_user(username = 'test', email = 'test@test.it', password = 'test')
+        Token.objects.create(user = self.user, key = '12345')
+        Office.objects.create(name = 'Neumann', cap = '00100', level = Office.SP)
+        for u in User.objects.all():
+            print('username: %s' % u.username)
+        #
+        # request to init_user
+        #
+        url = reverse('init-user')
+        data = {'key':'12345', 'classM': '5B', 'office': 'Neumann'}
+        self.client.post(url, data)
+        for g in GnumaUser.objects.all():
+            print('gnumauser: %s' % g.user.username)
+
+
+    def test_enqueue(self):
+
+        url = reverse('ad-list')
+        self.client.credentials(HTTP_AUTHORIZATION = 'Token 12345')
+        data = {'title': 'Test', 'price' : '33', 'isbn': '12345', 'book_title': 'Il canzoniere'}
+        response = self.client.post(url, data)
+        print("The API has issued an %s status code: %s" % (str(response.status_code), response.content))
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        for q in Queue_ads.objects.all():
+            print(repr(q.__dict__))
+            print('related ad:')
+            print(repr(q.ad.__dict__))
+
+        gnumaUser = GnumaUser.objects.get(user = self.user)
+        print(repr(gnumaUser.__dict__))
+
+
+#
+# Test errors that enqueue method may raise.
+#     
+class EnqueueAdsFails(APITestCase):
+
+    def setUp(self):
+        #
+        # Default objects.
+        #
+        self.user = User.objects.create_user(username = 'test', email = 'test@test.it', password = 'test')
+        Token.objects.create(user = self.user, key = '12345')
+        Office.objects.create(name = 'Neumann', cap = '00100', level = Office.SP)
+        for u in User.objects.all():
+            print('username: %s' % u.username)
+        #
+        # request to init_user
+        #
+        url = reverse('init-user')
+        data = {'key':'12345', 'classM': '5B', 'office': 'Neumann'}
+        self.client.post(url, data)
+        for g in GnumaUser.objects.all():
+            print('gnumauser: %s' % g.user.username)
+
+
+    def test_enqueue_bad_format(self):
+        url = reverse('ad-list')
+        self.client.credentials(HTTP_AUTHORIZATION = 'Token 12345')
+        data = {'title': 'Test', 'price' : '3b', 'isbn': '12345', 'book_title': 'Il canzoniere'} # price is not a valid integer
+        response = self.client.post(url, data)
+        print("The API has issued an %s status code: %s" % (str(response.status_code), response.content))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    
+    def test_enqueue_bad_format_2(self):
+
+        url = reverse('ad-list')
+        self.client.credentials(HTTP_AUTHORIZATION = 'Token 12345')
+        data = {'title': 'Test', 'price' : '33', 'isbn': '12345678999999', 'book_title': 'Il canzoniere'} # isbn code isn't valid
+        response = self.client.post(url, data)
+        print("The API has issued an %s status code: %s" % (str(response.status_code), response.content))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 '''
 
