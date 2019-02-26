@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import GnumaUser, Book, Office, Class, Ad, Queue_ads
+from .models import GnumaUser, Book, Office, Class, Ad, Queue_ads, ImageAd
 from django.contrib.auth.models import User
 
 
@@ -41,13 +41,19 @@ class BookSerializer(serializers.ModelSerializer):
         fields = ('isbn', 'title', 'author', 'classes')
 
 
+class ImageSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ImageAd
+        fields = ('created', 'image')
+
 class AdSerializer(serializers.ModelSerializer):
     book = BookSerializer(many = False, read_only = True)
     seller = GnumaUserSerializer(many = False, read_only = True)
-
+    image_ad = serializers.SlugRelatedField(many = True, read_only = True, slug_field = 'image')
     class Meta:
         model = Ad
-        fields = '__all__'
+        fields = ('title', 'book', 'seller', 'image_ad')
 
 
 class QueueAdsSerializer(serializers.ModelSerializer):
