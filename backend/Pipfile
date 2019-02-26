@@ -13,6 +13,8 @@ mysqlclient = "*"
 django-rest-auth = "*"
 django-allauth = "*"
 pipfile = "*"
+pillow = "*"
+libjpeg = "*"
 
 [requires]
 python_version = "3.6"

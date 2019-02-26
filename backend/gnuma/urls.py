@@ -1,5 +1,10 @@
+# Django imports
 from django.urls import path, include
+
+# Rest imports
 from rest_framework import routers
+
+# Local imports
 from .views import BookManager, AdManager, init_user, upload_image
 
 router = routers.SimpleRouter()
