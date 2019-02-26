@@ -7,13 +7,13 @@ from django.contrib.auth.models import User
 
 # Rest imports
 from rest_framework import status
-from rest_framework.test import APITestCase
+from rest_framework.test import APITestCase, APITransactionTestCase
 from rest_framework.authtoken.models import Token
 
 # Local imports
 from gnuma.views import upload_image
 from .serializers import AdSerializer
-from gnuma.models import Office, Class, GnumaUser, Book, Ad, Queue_ads
+from gnuma.models import Office, Class, GnumaUser, Book, Ad, Queue_ads, ImageAd
 
 
 '''
@@ -184,8 +184,8 @@ class AdManagerTest(APITestCase):
     #
     # 4) Upload image for the related item that test_create is going to create.
     #
-    # 5) Create the Ad objects that test_retrieve is going to retrieve.
-
+    # 5) Create the Ad object that test_retrieve is going to retrieve.
+    #
     
     def setUp(self):
         #
@@ -220,10 +220,15 @@ class AdManagerTest(APITestCase):
         #
         seller = GnumaUser.objects.all()
         instance = {'title' : 'Retrieve test', 'price' : '45', 'seller' : seller[0], 'enabled' : True}
+        try:
+            AdSerializer(data = instance).is_valid(raise_exception = True)
+        except Exception as e:
+            print(str(e))
         self.assertEqual(AdSerializer(data = instance).is_valid(), True)
         ad = Ad.objects.create(**instance)
-        self.id = ad.pk
+        self.id = ad.pk + 1
         print('id--->%d ' % ad.pk)
+        
 
 
 
@@ -243,20 +248,44 @@ class AdManagerTest(APITestCase):
 
         for ad in Ad.objects.all():
             print(repr(ad.__dict__))
+            self.id = ad.pk
+
+        for img in ImageAd.objects.all():
+            print(repr(img.__dict__))
 
         #
         # Check the number of ads created.
         #
         user = GnumaUser.objects.get(user = self.user)
-        print(repr(user.__dict__))
+        print('test_create : ' + repr(user.__dict__))
 
-
+    
     def test_retrieve(self):
+
+        url = reverse('ad-list')
+        self.client.credentials(HTTP_AUTHORIZATION = 'Token 12345')
+        data = {'title': 'Test', 'price' : '33', 'isbn': '12345'}
+        response = self.client.post(url, data)
+        print("The API has issued an %s status code: %s" % (str(response.status_code), response.content))
+
+        for ad in Ad.objects.all():
+            print(repr(ad.__dict__))
+            self.id = ad.pk
+
+        for img in ImageAd.objects.all():
+            print(repr(img.__dict__))
+
+        #
+        # Check the number of ads created.
+        #
+        user = GnumaUser.objects.get(user = self.user)
+        print('test_create : ' + repr(user.__dict__))
 
         url = reverse('ad-detail', kwargs = {'pk' : self.id})
         response = self.client.get(url)
 
         print(response.content)
+    
 
 
 class AdManagerNoImage(APITestCase):
