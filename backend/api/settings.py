@@ -16,8 +16,8 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Directory containing ads' images.
-IMAGES_DIR = os.path.join(BASE_DIR, 'img/')  
-IMAGES_URL = 'img/'    
+MEDIA_ROOT = os.path.join(BASE_DIR, 'img/')  
+MEDIA_URL = 'http://localhost:8000/'    
 
 
 # Quick-start development settings - unsuitable for production
@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     #3rd parties
+    'PIL',
     'corsheaders',
     'rest_framework',
     'rest_framework.authtoken',

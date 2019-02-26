@@ -16,7 +16,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import FileUploadParser
 
 # Local imports
-from .models import GnumaUser, Book, Office, Class, Ad, Queue_ads
+from .models import GnumaUser, Book, Office, Class, Ad, Queue_ads, ImageAd
 from .serializers import BookSerializer, AdSerializer, QueueAdsSerializer
 from .imageh import ImageHandler
 from .doubleCheckLayer import DoubleCheck
@@ -73,11 +73,11 @@ def init_user(request):
         newUser = GnumaUser.objects.create(user = user, classM = c, adsCreated = 0, level = "Free")
         
         #Create the directory for images.
-        try: 
-            os.mkdir(r''.join([settings.IMAGES_DIR, user.username, '/']))          # ---------------------------------------> MUST BE TESTED
-        except Exception as e:
-            newUser.save() # To be deleted
-            return HttpResponse(str(e), status = status.HTTP_403_FORBIDDEN)
+        #try: 
+        #    os.mkdir(r''.join([settings.IMAGES_DIR, user.username, '/']))          # ---------------------------------------> MUST BE TESTED
+        #except Exception as e:
+        #    newUser.save() # To be deleted
+        #    return HttpResponse(str(e), status = status.HTTP_403_FORBIDDEN)
         newUser.save()
     return HttpResponse(status = status.HTTP_201_CREATED)
 
@@ -94,23 +94,30 @@ def upload_image(request, filename, format = None):
     '''
     allowed_ext = ("image/png", "image/jpeg")
 
-    # Must be tested
     if not DoubleCheck(token = request.auth).is_valid():
         return JsonResponse({'detail' : 'your token has expired'}, status = status.HTTP_403_FORBIDDEN)
 
-    if request.content_type == None or request.content_type not in allowed_ext:
+    content_type = request.META['CONTENT_TYPE']
+    content = request.data['file']
+    if content_type == None or content_type not in allowed_ext:
         return JsonResponse({"detail":"extension not allowed"}, status = status.HTTP_400_BAD_REQUEST)
     '''
     IS FILE SIZE ACCEPTABLE ?
     '''
+    #content_length = int(request.META['CONTENT_LENGTH'])
+
+    #if content_length != content.size:
+    #    return JsonResponse({'detail' : 'image size does not coincide!'})
+
     global ImageQueue
 
     if ImageQueue.get(request.user.username, False):
         return JsonResponse({'detail':'this user has already uploaded an image!'}, status = status.HTTP_409_CONFLICT)
+    
     try:
-        handler = ImageHandler(filename = filename, content = request.data['file'], user = request.user, content_type = request.content_type)
-        filename = handler.open()
-        ImageQueue[request.user.username] = request.build_absolute_uri(r''.join(('/',settings.IMAGES_URL, request.user.username,'/', filename)))
+        handler = ImageHandler(filename = filename, content = content, user = request.user, content_type = content_type)
+        pk = handler.open()
+        ImageQueue[request.user.username] = pk
     except Exception:
         ImageQueue.pop(request.user.username)
         return JsonResponse({'detail' : 'something went wrong!'}, status = status.HTTP_400_BAD_REQUEST)
@@ -218,8 +225,8 @@ class AdManager(viewsets.GenericViewSet):
     '''
     def enqueue(self, request):
         user = GnumaUser.objects.get(user = request.user)
-        image = ImageQueue.pop(request.user.username, None)
-        instance = {'title': request.data['title'], 'price': request.data['price'], 'seller': user, 'enabled': False, 'image': image}
+
+        instance = {'title': request.data['title'], 'price': request.data['price'], 'seller': user, 'enabled': False}
         if not self.get_serializer_class()(data = instance).is_valid():
             return HttpResponse(status = status.HTTP_400_BAD_REQUEST)
         enqueued = Ad.objects.create(**instance)
@@ -234,6 +241,14 @@ class AdManager(viewsets.GenericViewSet):
         enqueued.save()
         user.adsCreated = user.adsCreated+1
         user.save()
+
+        
+        image_pk = ImageQueue.pop(request.user.username, None)
+        if image_pk != None:
+            image = ImageAd.objects.get(pk = image_pk)
+            image.ad = enqueued
+            image.save()
+        
         return JsonResponse({'detail':'item enqueued!'}, status = status.HTTP_201_CREATED)
 
 
@@ -243,15 +258,14 @@ class AdManager(viewsets.GenericViewSet):
 
     The client should indicate whether the book has been selected from the hints.
     If it wasn't the client should add 'book_title' into the JSON object.
-    Each request that has the 'book_title' creates an enqueued item, that eventually will be enabled by the staff.
-    
+    Each request that has the 'book_title' creates an enqueued item, that eventually will be enabled by the staff.   
     '''
     def create(self, request):
         user = GnumaUser.objects.get(user = request.user)
         
         # Must be tested
         if not DoubleCheck(token = request.auth).is_valid():
-            return JsonResponse({'detail' : 'your token has expired'}, status = status.HTTP_401_UNAUTHORIZED) # Returns the same as user's limit reached. Must be changed
+            return JsonResponse({'detail' : 'your token has expired'}, status = status.HTTP_401_UNAUTHORIZED)
 
         # Check whether the user has reached his items' limit
         if user.level == "Free" and user.adsCreated == 10:
@@ -276,10 +290,7 @@ class AdManager(viewsets.GenericViewSet):
         except Book.DoesNotExist:
             return JsonResponse({'detail':'the book does not exist'}, status = status.HTTP_400_BAD_REQUEST)
 
-        image = ImageQueue.pop(request.user.username, None)
-        instance = {'title': request.data['title'], 'image': image,'price': request.data['price'], 'book': book, 'seller': user}
-
-        #print('DEBUG : '+repr(self.get_serializer_class()(data = instance)._writable_fields))
+        instance = {'title': request.data['title'], 'price': request.data['price'], 'book': book, 'seller': user}
 
         try: 
             self.get_serializer_class()(data = instance).is_valid(raise_exception = True)
@@ -298,6 +309,15 @@ class AdManager(viewsets.GenericViewSet):
                 newAd = Ad.objects.create(**instance)
         newAd.save()
         
+        #
+        # Relate the new item to its images, if it has any.
+        # 
+        image_pk = ImageQueue.pop(request.user.username, None)
+        if image_pk != None:
+            image = ImageAd.objects.get(pk = image_pk)
+            image.ad = newAd
+            image.save()
+
         user.adsCreated = user.adsCreated+1
         user.save()
         
