@@ -6,14 +6,20 @@ from rest_framework import routers
 
 # Local imports
 from .views import BookManager, AdManager, init_user, upload_image
+from .search_views import getHintsBooks
 
 router = routers.SimpleRouter()
 router.register(r'books', BookManager, basename = "book")
 router.register(r'ads', AdManager)
 
+
+
 urlpatterns = [
     path('init/', init_user, name = 'init-user'),
-    path(r'ads/upload/<filename>/', upload_image, name = 'upload-ad-image')
+    path(r'ads/upload/<filename>/', upload_image, name = 'upload-ad-image'),
+    path(r'search/hints/book/', getHintsBooks, name = 'hint-book')
 ]
 
 urlpatterns += router.urls
+
+
