@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'rest_auth.registration',
+    'haystack',
 
     #local
     'gnuma.apps.GnumaConfig',
@@ -160,3 +161,18 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 SITE_ID = 1
 
 REST_SESSION_LOGIN = False
+
+#
+#   Haystack connections
+#
+HAYSTACK_CONNECTIONS = {
+    'default': {
+        'ENGINE': 'haystack.backends.whoosh_backend.WhooshEngine',
+        'PATH': '/home/free_will/whoosh/',
+        'TIMEOUT': 60 * 5,
+        'INCLUDE_SPELLING': True,
+        'STORAGE': 'file',
+        'POST_LIMIT': 128 * 1024 * 1024,
+        'BATCH_SIZE': 100,
+    },
+}
