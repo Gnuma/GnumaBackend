@@ -12,6 +12,10 @@ from haystack.query import SearchQuerySet
 from .models import Book, Office
 from .search_indexes import BookIndex
 
+
+#
+# keyword: the user can enter either the book's name or its isbn.
+#
 @api_view(['POST',])
 def getHintsBooks(request):
     if 'keyword' not in request.data:
@@ -43,7 +47,9 @@ def getHintsBooks(request):
 
     return JsonResponse({'results' : 'Nessun risultato!'}, status = status.HTTP_404_NOT_FOUND)
 
-'''
+#
+# keyword: the user can enter the office's name.
+#
 @api_view(['POST'])
 def getHintsOffices(request):
     if 'keyword' not in request.data:
@@ -56,8 +62,14 @@ def getHintsOffices(request):
         results = []
         for i in r:
             json_obj = {}
-            json_obj['']
+            json_obj['name'] = i.text
+            json_obj['cap'] = Office.objects.get(pk = i.pk).cap
             results.append(json_obj)
         result['results'] = results
         return JsonResponse(result, status = status.HTTP_200_OK)
-'''
+
+    return JsonResponse({'results' : 'Nessun risultato!'}, status = status.HTTP_404_NOT_FOUND)
+
+
+
+    

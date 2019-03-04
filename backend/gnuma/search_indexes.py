@@ -10,6 +10,9 @@ from .models import Book, Office
 class BookIndex(indexes.SearchIndex, indexes.Indexable):
     text = indexes.CharField(document = True, use_template = True)
     author = indexes.CharField(model_attr = 'author')
+    #
+    # renderer
+    # 
 
     title = indexes.EdgeNgramField(model_attr = 'title')
     isbn = indexes.EdgeNgramField(model_attr = 'isbn')
@@ -23,6 +26,7 @@ class BookIndex(indexes.SearchIndex, indexes.Indexable):
 
 class OfficeIndex(indexes.SearchIndex, indexes.Indexable):
     text = indexes.EdgeNgramField(document = True, model_attr = 'name')
+
 
     def get_model(self):
         return Office
