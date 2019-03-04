@@ -72,12 +72,12 @@ def init_user(request):
     except GnumaUser.DoesNotExist:
         newUser = GnumaUser.objects.create(user = user, classM = c, adsCreated = 0, level = "Free")
         
-        #Create the directory for images.
-        #try: 
-        #    os.mkdir(r''.join([settings.IMAGES_DIR, user.username, '/']))          # ---------------------------------------> MUST BE TESTED
-        #except Exception as e:
-        #    newUser.save() # To be deleted
-        #    return HttpResponse(str(e), status = status.HTTP_403_FORBIDDEN)
+        # Create the directory for images.
+        # try: 
+        #     os.mkdir(r''.join([settings.IMAGES_DIR, user.username, '/']))          # ---------------------------------------> MUST BE TESTED
+        # except Exception as e:
+        #     newUser.save() # To be deleted
+        #     return HttpResponse(str(e), status = status.HTTP_403_FORBIDDEN)
         newUser.save()
     return HttpResponse(status = status.HTTP_201_CREATED)
 
@@ -188,6 +188,7 @@ class BookManager(viewsets.GenericViewSet):
         serializer = BookSerializer(book, many = False)
         return JsonResponse(serializer.data, status = status.HTTP_200_OK, safe = False)
     
+    '''
     @action(detail = False, methods = ['post'])
     def search(self, request):
         if 'keyword' not in request.data:
@@ -196,7 +197,7 @@ class BookManager(viewsets.GenericViewSet):
         book = e.get_candidates()
         serializer = BookSerializer(book, many = False)
         return JsonResponse(serializer.data, status = status.HTTP_200_OK, safe = False)
-
+    '''
     
 '''
 -------------------------------------------------------------------------------------------------------------------+
@@ -226,7 +227,7 @@ class AdManager(viewsets.GenericViewSet):
     def enqueue(self, request):
         user = GnumaUser.objects.get(user = request.user)
 
-        instance = {'title': request.data['title'], 'price': request.data['price'], 'seller': user, 'enabled': False}
+        instance = {'description': request.data['description'], 'price': request.data['price'], 'seller': user, 'enabled': False}
         if not self.get_serializer_class()(data = instance).is_valid():
             return HttpResponse(status = status.HTTP_400_BAD_REQUEST)
         enqueued = Ad.objects.create(**instance)
@@ -274,7 +275,7 @@ class AdManager(viewsets.GenericViewSet):
             return JsonResponse({'detail':'The user cannot insert any other item!'}, status = status.HTTP_403_FORBIDDEN)
         
         # Check the arguments' validity
-        if 'title' not in request.data or 'price' not in request.data or 'isbn' not in request.data:
+        if 'description' not in request.data or 'price' not in request.data or 'isbn' not in request.data:
             return JsonResponse({"detail":"one or more arguments are missing!"}, status = status.HTTP_400_BAD_REQUEST)
 
 
@@ -290,7 +291,7 @@ class AdManager(viewsets.GenericViewSet):
         except Book.DoesNotExist:
             return JsonResponse({'detail':'the book does not exist'}, status = status.HTTP_400_BAD_REQUEST)
 
-        instance = {'title': request.data['title'], 'price': request.data['price'], 'book': book, 'seller': user}
+        instance = {'description': request.data['description'], 'price': request.data['price'], 'book': book, 'seller': user}
 
         try: 
             self.get_serializer_class()(data = instance).is_valid(raise_exception = True)
@@ -332,63 +333,41 @@ class AdManager(viewsets.GenericViewSet):
 
     @action(detail = False, methods = ['post'])
     def search(self, request):
-        if 'keyword' not in request.data:
-            return JsonResponse({"detail":"One or more arguments are missing!"}, status = status.HTTP_400_BAD_REQUEST)
-        e = Engine(model = Book, lookup_field = 'title', keyword = request.data['keyword'], geo = False)
-        book = e.get_candidates()
-        serializer = self.get_serializer_class()(Ad.objects.filter(book = book), many = True)
-        return JsonResponse(serializer.data, status=status.HTTP_200_OK, safe = False)
+        #
+        # The first step attempts to determine whether the user has chosen one of the hints or not.
+        # If the POST request contains an 'isbn' key it means the user has effectively chosen one hints,
+        # and then this view just returns the items related to the book with that isbn.
+        # If the request does not contain the 'isbn' key, then this just tries to figure out what the user
+        # may be looking for.
+        #
+        # This view returns items grouped by office.
+        #
 
-    
-    @action(detail = False, methods = ['post'])
-    def geo_search(self, request):
-        return JsonResponse({'detail':'this service is not available'}, status = status.HTTP_403_FORBIDDEN)
-    
-
-
+        if 'isbn' not in request.data and 'keyword' not in request.data:
+            return JsonResponse({'detail':'one or more argument are missing!'})
         
-'''
--------------------------------------------------------------------------------------------------------------------+
-                                                                                                                   |
-Engine                                                                                                         |
-                                                                                                                   |
--------------------------------------------------------------------------------------------------------------------+
-'''        
-
-class Engine:
-
-    def __init__(self, **kwargs):
-        self.model = kwargs['model'] 
-        self.lookup_field = kwargs['lookup_field']
-        self.keyword = kwargs['keyword']
+        if 'isbn' in request.data and 'keyword' in request.data:
+            return JsonResponse({'detail':'ambiguous arguments!'}, status = status.HTTP_400_BAD_REQUEST) 
         
-        '''
-        Max number of related results.
-        '''
-        if 'max' in kwargs:
-            self.max = kwargs['max']
+        if 'isbn' in request.data:
+            #
+            # The user has chosen the book from the hints.
+            #
+            response = {}
+            isbn = request.data['isbn']
+            ads = Ad.objects.filter(book__pk = isbn)
+            #
+            # Sorting function
+            #
+            results = self.get_serializer_class()(ads, many = True)
+            response['resultType'] = 'single'      
+            response['results'] = results.data
+
+            return JsonResponse(response, status = status.HTTP_200_OK, safe = False)
         else:
-            self.max = 3
+            return JsonResponse({'detail':'function are not implemented!'}, status = status.HTTP_400_BAD_REQUEST)
+    
 
-        if kwargs['geo']:
-            self.location = kwargs['location']
 
-    def get_related(self):
-        min = len(self.keyword)
-        related = None
-        for item in self.model.objects.all():
-            title = getattr(item, self.lookup_field)
-            differences = sum(a!=b for a, b in zip(title, self.keyword))-abs(len(self.keyword)-len(title))
-            if differences < min:
-                min = differences
-                related = item
-        return related
-
-    def get_candidates(self):
-        try:
-            parameters = {self.lookup_field : self.keyword}
-            models = self.model.objects.get(**parameters)
-            return models
-        except self.model.DoesNotExist:
-            return self.get_related()
+        
 
