@@ -241,7 +241,7 @@ class AdManager(viewsets.GenericViewSet):
     def enqueue(self, request):
         user = GnumaUser.objects.get(user = request.user)
 
-        instance = {'description': request.data['description'], 'price': request.data['price'], 'seller': user, 'enabled': False}
+        instance = {'description': request.data['description'], 'price': request.data['price'], 'seller': user, 'enabled': False, 'condition' : request.data['condition']}
         if not self.get_serializer_class()(data = instance).is_valid():
             return HttpResponse(status = status.HTTP_400_BAD_REQUEST)
         enqueued = Ad.objects.create(**instance)
@@ -289,7 +289,7 @@ class AdManager(viewsets.GenericViewSet):
             return JsonResponse({'detail':'The user cannot insert any other item!'}, status = status.HTTP_403_FORBIDDEN)
         
         # Check the arguments' validity
-        if 'description' not in request.data or 'price' not in request.data or 'isbn' not in request.data:
+        if 'description' not in request.data or 'price' not in request.data or 'isbn' not in request.data or 'condition' not in request.data:
             return JsonResponse({"detail":"one or more arguments are missing!"}, status = status.HTTP_400_BAD_REQUEST)
 
 
@@ -305,7 +305,7 @@ class AdManager(viewsets.GenericViewSet):
         except Book.DoesNotExist:
             return JsonResponse({'detail':'the book does not exist'}, status = status.HTTP_400_BAD_REQUEST)
 
-        instance = {'description': request.data['description'], 'price': request.data['price'], 'book': book, 'seller': user}
+        instance = {'description': request.data['description'], 'price': request.data['price'], 'book': book, 'seller': user, 'condition' : request.data['condition']}
 
         try: 
             self.get_serializer_class()(data = instance).is_valid(raise_exception = True)
