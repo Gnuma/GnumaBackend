@@ -42,20 +42,24 @@ class BookSerializer(serializers.ModelSerializer):
         fields = ('isbn', 'title', 'author', 'classes')
 
 
-class ImageSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = ImageAd
-        fields = ('created', 'image')
-
-
 class AdSerializer(serializers.ModelSerializer):
     book = BookSerializer(many = False, read_only = True)
     seller = GnumaUserSerializer(many = False, read_only = True)
-    image_ad = serializers.SlugRelatedField(many = True, read_only = True, slug_field = 'image')
+    image_ad = serializers.SerializerMethodField()
+
     class Meta:
         model = Ad
         fields = ('description', 'book', 'seller', 'image_ad')
+
+    def get_image_ad(self, ad):
+        request = self.context.get('request')
+        images = ImageAd.objects.filter(ad = ad)
+        serialized_field = []
+
+        for image in images:
+            serialized_field.append(request.build_absolute_uri(image.image.url))
+        
+        return serialized_field
 
 
 class QueueAdsSerializer(serializers.ModelSerializer):
