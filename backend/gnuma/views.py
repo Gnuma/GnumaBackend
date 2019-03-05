@@ -46,44 +46,48 @@ init the internal user object.
 @authentication_classes([TokenAuthentication,])
 def init_user(request):
     if 'key' not in request.data or 'classM' not in request.data or 'office' not in request.data:
-        return JsonResponse({"detail":"one or more arguments are missing!"}, status = status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({'detail':'one or more arguments are missing!'}, status = status.HTTP_400_BAD_REQUEST)
+
     try:
         token = Token.objects.get(key = request.data['key'])
     except Token.DoesNotExist:
-        return HttpResponse('key does not exist', status = status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({'detail' : 'key does not exist!'}, status = status.HTTP_400_BAD_REQUEST)
+
     user = User.objects.get(username = token.user)
     classM = request.data['classM'] 
     try:
-        office = Office.objects.get(name=request.data['office'])
+        office = Office.objects.get(name = request.data['office'])
     except Office.DoesNotExist:
-        return HttpResponse("office does not exist", status = status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({'detail' : 'office does not exits!'}, status = status.HTTP_400_BAD_REQUEST)
+
     if len(classM) != 2:
-        return HttpResponse('class: format-error', status = status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({'detail' : 'invalid format!'}, status = status.HTTP_400_BAD_REQUEST)
+
     grade = classM[0]
     division = classM[1]
     try:
         c = Class.objects.get(division = division, grade = grade, office = office)
     except Class.DoesNotExist:
         #if the Class objects doesn't exits, it'll just create it
+        """
+        is_valid should be added.
+        """
         c = Class.objects.create(division = division, grade = grade, office = office)
         c.save()
+    
     try:
         newUser = GnumaUser.objects.get(user = user, classM = c)
     except GnumaUser.DoesNotExist:
+        """
+        is_valid should be added.
+        """
         newUser = GnumaUser.objects.create(user = user, classM = c, adsCreated = 0, level = "Free")
-        
-        # Create the directory for images.
-        # try: 
-        #     os.mkdir(r''.join([settings.IMAGES_DIR, user.username, '/']))          # ---------------------------------------> MUST BE TESTED
-        # except Exception as e:
-        #     newUser.save() # To be deleted
-        #     return HttpResponse(str(e), status = status.HTTP_403_FORBIDDEN)
         newUser.save()
-    return HttpResponse(status = status.HTTP_201_CREATED)
 
-'''
-Must be tested
-'''
+    return JsonResponse({'detail' : 'GnumaUser successfully registered!'}, status = status.HTTP_201_CREATED)
+
+
+
 @api_view(['POST',])
 @authentication_classes([TokenAuthentication,])
 @permission_classes([IsAuthenticated,])
@@ -93,14 +97,16 @@ def upload_image(request, filename, format = None):
     Allowed images' types
     '''
     allowed_ext = ("image/png", "image/jpeg")
-
+    #
+    # token check
+    #
     if not DoubleCheck(token = request.auth).is_valid():
-        return JsonResponse({'detail' : 'your token has expired'}, status = status.HTTP_403_FORBIDDEN)
+        return JsonResponse({'detail' : 'your token has expired!'}, status = status.HTTP_403_FORBIDDEN)
 
     content_type = request.META['CONTENT_TYPE']
     content = request.data['file']
     if content_type == None or content_type not in allowed_ext:
-        return JsonResponse({"detail":"extension not allowed"}, status = status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({'detail' : 'extension not allowed!'}, status = status.HTTP_400_BAD_REQUEST)
     '''
     IS FILE SIZE ACCEPTABLE ?
     '''
@@ -111,15 +117,23 @@ def upload_image(request, filename, format = None):
 
     global ImageQueue
 
-    if ImageQueue.get(request.user.username, False):
-        return JsonResponse({'detail':'this user has already uploaded an image!'}, status = status.HTTP_409_CONFLICT)
-    
+    # debug information
+    print(repr(ImageQueue))
+
     try:
+        # must be tested 
+        if not ImageQueue.get(request.user.username, False):
+            ImageQueue[request.user.username] = []
+            if len(ImageQueue[request.user.username]) > 4:
+                # 5 images allowed
+                return JsonResponse({'detail' : 'maximum number of images reached!'}, status = status.HTTP_409_CONFLICT)
+
         handler = ImageHandler(filename = filename, content = content, user = request.user, content_type = content_type)
         pk = handler.open()
-        ImageQueue[request.user.username] = pk
-    except Exception:
-        ImageQueue.pop(request.user.username)
+        ImageQueue[request.user.username].append(pk)
+    except Exception as e:
+        print('An exception has been thrown: %s' % str(e))
+        ImageQueue.pop(request.user.username, None)
         return JsonResponse({'detail' : 'something went wrong!'}, status = status.HTTP_400_BAD_REQUEST)
     
     return HttpResponse(status = status.HTTP_201_CREATED)
@@ -244,9 +258,9 @@ class AdManager(viewsets.GenericViewSet):
         user.save()
 
         
-        image_pk = ImageQueue.pop(request.user.username, None)
-        if image_pk != None:
-            image = ImageAd.objects.get(pk = image_pk)
+        image_pk_array = ImageQueue.pop(request.user.username, None)
+        for img in image_pk_array:
+            image = ImageAd.objects.get(pk = img)
             image.ad = enqueued
             image.save()
         
@@ -307,15 +321,15 @@ class AdManager(viewsets.GenericViewSet):
             Ad.objects.get(book = book, seller = user)
             return JsonResponse({'detail':'item already exists!'}, status = status.HTTP_409_CONFLICT)
         except Ad.DoesNotExist:
-                newAd = Ad.objects.create(**instance)
+            newAd = Ad.objects.create(**instance)
         newAd.save()
         
         #
         # Relate the new item to its images, if it has any.
         # 
-        image_pk = ImageQueue.pop(request.user.username, None)
-        if image_pk != None:
-            image = ImageAd.objects.get(pk = image_pk)
+        image_pk_array = ImageQueue.pop(request.user.username, None)
+        for img in image_pk_array:
+            image = ImageAd.objects.get(pk = img)
             image.ad = newAd
             image.save()
 
@@ -327,7 +341,7 @@ class AdManager(viewsets.GenericViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         ad = self.get_object()
-        serializer = self.get_serializer_class()(ad, many = False)
+        serializer = self.get_serializer_class()(ad, many = False, context = {'request': request})
         return JsonResponse(serializer.data, status = status.HTTP_200_OK, safe = False)
 
 
