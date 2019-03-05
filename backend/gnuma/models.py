@@ -86,7 +86,7 @@ class Ad(models.Model):
     seller = models.ForeignKey(GnumaUser, on_delete = models.CASCADE)
     enabled = models.BooleanField(default = True)
     def __str__(self):
-        return GnumaUser.__str__(self.seller)+":"+self.title
+        return GnumaUser.__str__(self.seller)+":"+self.description
 
 class Queue_ads(models.Model):
     ad = models.ForeignKey(Ad, on_delete = models.CASCADE)
