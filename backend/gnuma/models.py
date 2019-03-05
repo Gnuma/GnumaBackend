@@ -81,6 +81,7 @@ class GnumaUser(models.Model):
 
 class Ad(models.Model):
     description = models.CharField(max_length = 280)
+    condition = models.IntegerField()
     price = models.FloatField()
     book = models.ForeignKey(Book, on_delete = models.CASCADE, blank = True, null = True)
     seller = models.ForeignKey(GnumaUser, on_delete = models.CASCADE)
