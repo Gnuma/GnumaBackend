@@ -101,7 +101,7 @@ def upload_image(request, filename, format = None):
     # token check
     #
     if not DoubleCheck(token = request.auth).is_valid():
-        return JsonResponse({'detail' : 'your token has expired!'}, status = status.HTTP_403_FORBIDDEN)
+        return JsonResponse({'detail' : 'your token has expired!'}, status = status.HTTP_401_UNAUTHORIZED)
 
     content_type = request.META['CONTENT_TYPE']
     content = request.data['file']
@@ -117,11 +117,7 @@ def upload_image(request, filename, format = None):
 
     global ImageQueue
 
-    # debug information
-    print(repr(ImageQueue))
-
     try:
-        # must be tested 
         if not ImageQueue.get(request.user.username, False):
             ImageQueue[request.user.username] = []
             if len(ImageQueue[request.user.username]) > 4:
@@ -358,7 +354,7 @@ class AdManager(viewsets.GenericViewSet):
         #
 
         if 'isbn' not in request.data and 'keyword' not in request.data:
-            return JsonResponse({'detail':'one or more argument are missing!'})
+            return JsonResponse({'detail':'one or more argument are missing!'}, status = status.HTTP_400_BAD_REQUEST)
         
         if 'isbn' in request.data and 'keyword' in request.data:
             return JsonResponse({'detail':'ambiguous arguments!'}, status = status.HTTP_400_BAD_REQUEST) 
