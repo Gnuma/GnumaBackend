@@ -49,7 +49,7 @@ class AdSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Ad
-        fields = ('description', 'price', 'condition', 'book', 'seller', 'image_ad')
+        fields = ('pk', 'description', 'price', 'condition', 'book', 'seller', 'image_ad')
 
     def get_image_ad(self, ad):
         request = self.context.get('request')
