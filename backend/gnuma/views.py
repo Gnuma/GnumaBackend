@@ -369,7 +369,7 @@ class AdManager(viewsets.GenericViewSet):
             #
             # Sorting function
             #
-            results = self.get_serializer_class()(ads, many = True)
+            results = self.get_serializer_class()(ads, many = True, context = {'request':request})
             response['resultType'] = 'single'      
             response['results'] = results.data
 
