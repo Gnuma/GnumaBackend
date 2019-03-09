@@ -3,7 +3,7 @@ import os, sys
 
 # Django imports
 from django.contrib.auth.models import User
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 from django.conf import settings
 
 # Rest imports
@@ -106,7 +106,7 @@ def upload_image(request, filename, format = None):
     content_type = request.META['CONTENT_TYPE']
     content = request.data['file']
     if content_type == None or content_type not in allowed_ext:
-        return JsonResponse({'detail' : 'extension not allowed!'}, status = status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({'detail' : 'extension not allowed!'}, status = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
     '''
     IS FILE SIZE ACCEPTABLE ?
     '''
@@ -127,12 +127,11 @@ def upload_image(request, filename, format = None):
         handler = ImageHandler(filename = filename, content = content, user = request.user, content_type = content_type)
         pk = handler.open()
         ImageQueue[request.user.username].append(pk)
-    except Exception as e:
-        print('An exception has been thrown: %s' % str(e))
+    except Exception:
         ImageQueue.pop(request.user.username, None)
         return JsonResponse({'detail' : 'something went wrong!'}, status = status.HTTP_400_BAD_REQUEST)
     
-    return HttpResponse(status = status.HTTP_201_CREATED)
+    return JsonResponse({'detail' : 'image uploaded!'}, status = status.HTTP_201_CREATED)
     
     
     
@@ -174,17 +173,17 @@ class BookManager(viewsets.GenericViewSet):
         user = GnumaUser.objects.get(user = request.user)
         try: 
             b = Book.objects.get(isbn = request.data['isbn'], classes = user.classM)
-            return HttpResponse(status = status.HTTP_201_CREATED)
+            return JsonResponse({'detail' : 'book created!'}, status = status.HTTP_201_CREATED)
         except Book.DoesNotExist:
             try:     
                 b = Book.objects.get(isbn = request.data['isbn'])
                 b.classes.add(user.classM)
-                return HttpResponse(status = status.HTTP_201_CREATED)
+                return JsonResponse({'detail' : 'book created!'}, status = status.HTTP_201_CREATED)
             except Book.DoesNotExist:
                 b = Book.objects.create(title = request.data['title'], author = request.data['author'], isbn = request.data['isbn'])
                 b.save()
                 b.classes.add(user.classM)
-                return HttpResponse(status = status.HTTP_201_CREATED)
+                return JsonResponse({'detail' : 'book created!'}, status = status.HTTP_201_CREATED)
   
     '''
     The following method lists all the Books instances.
@@ -239,7 +238,7 @@ class AdManager(viewsets.GenericViewSet):
 
         instance = {'description': request.data['description'], 'price': request.data['price'], 'seller': user, 'enabled': False, 'condition' : request.data['condition']}
         if not self.get_serializer_class()(data = instance).is_valid():
-            return HttpResponse(status = status.HTTP_400_BAD_REQUEST)
+            return JsonResponse({'detail' : 'bad format!'}, status = status.HTTP_400_BAD_REQUEST)
         enqueued = Ad.objects.create(**instance)
         instance = {'ad': enqueued, 'book_title': request.data['book_title'], 'isbn': request.data['isbn']}
         try:
@@ -332,7 +331,7 @@ class AdManager(viewsets.GenericViewSet):
         user.adsCreated = user.adsCreated+1
         user.save()
         
-        return HttpResponse(status = status.HTTP_201_CREATED)
+        return JsonResponse({'detail' : 'item created!'}, status = status.HTTP_201_CREATED)
 
 
     def retrieve(self, request, *args, **kwargs):
@@ -369,15 +368,10 @@ class AdManager(viewsets.GenericViewSet):
             #
             # Sorting function
             #
-            results = self.get_serializer_class()(ads, many = True)
+            results = self.get_serializer_class()(ads, many = True, context = {'request' : request})
             response['resultType'] = 'single'      
             response['results'] = results.data
 
             return JsonResponse(response, status = status.HTTP_200_OK, safe = False)
         else:
             return JsonResponse({'detail':'function are not implemented!'}, status = status.HTTP_400_BAD_REQUEST)
-    
-
-
-        
-
