@@ -374,4 +374,4 @@ class AdManager(viewsets.GenericViewSet):
 
             return JsonResponse(response, status = status.HTTP_200_OK, safe = False)
         else:
-            return JsonResponse({'detail':'function are not implemented!'}, status = status.HTTP_400_BAD_REQUEST)
+            return JsonResponse({'detail':'this function is not implemented!'}, status = status.HTTP_400_BAD_REQUEST)
