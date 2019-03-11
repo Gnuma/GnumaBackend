@@ -14,7 +14,8 @@ django-rest-auth = "*"
 django-allauth = "*"
 pipfile = "*"
 pillow = "*"
-libjpeg = "*"
+django-haystack = "*"
+whoosh = "*"
 
 [requires]
 python_version = "3.6"

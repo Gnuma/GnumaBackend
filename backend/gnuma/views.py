@@ -3,7 +3,7 @@ import os, sys
 
 # Django imports
 from django.contrib.auth.models import User
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 from django.conf import settings
 
 # Rest imports
@@ -46,44 +46,48 @@ init the internal user object.
 @authentication_classes([TokenAuthentication,])
 def init_user(request):
     if 'key' not in request.data or 'classM' not in request.data or 'office' not in request.data:
-        return JsonResponse({"detail":"one or more arguments are missing!"}, status = status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({'detail':'one or more arguments are missing!'}, status = status.HTTP_400_BAD_REQUEST)
+
     try:
         token = Token.objects.get(key = request.data['key'])
     except Token.DoesNotExist:
-        return HttpResponse('key does not exist', status = status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({'detail' : 'key does not exist!'}, status = status.HTTP_400_BAD_REQUEST)
+
     user = User.objects.get(username = token.user)
     classM = request.data['classM'] 
     try:
-        office = Office.objects.get(name=request.data['office'])
+        office = Office.objects.get(name = request.data['office'])
     except Office.DoesNotExist:
-        return HttpResponse("office does not exist", status = status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({'detail' : 'office does not exits!'}, status = status.HTTP_400_BAD_REQUEST)
+
     if len(classM) != 2:
-        return HttpResponse('class: format-error', status = status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({'detail' : 'invalid format!'}, status = status.HTTP_400_BAD_REQUEST)
+
     grade = classM[0]
     division = classM[1]
     try:
         c = Class.objects.get(division = division, grade = grade, office = office)
     except Class.DoesNotExist:
         #if the Class objects doesn't exits, it'll just create it
+        """
+        is_valid should be added.
+        """
         c = Class.objects.create(division = division, grade = grade, office = office)
         c.save()
+    
     try:
         newUser = GnumaUser.objects.get(user = user, classM = c)
     except GnumaUser.DoesNotExist:
+        """
+        is_valid should be added.
+        """
         newUser = GnumaUser.objects.create(user = user, classM = c, adsCreated = 0, level = "Free")
-        
-        #Create the directory for images.
-        #try: 
-        #    os.mkdir(r''.join([settings.IMAGES_DIR, user.username, '/']))          # ---------------------------------------> MUST BE TESTED
-        #except Exception as e:
-        #    newUser.save() # To be deleted
-        #    return HttpResponse(str(e), status = status.HTTP_403_FORBIDDEN)
         newUser.save()
-    return HttpResponse(status = status.HTTP_201_CREATED)
 
-'''
-Must be tested
-'''
+    return JsonResponse({'detail' : 'GnumaUser successfully registered!'}, status = status.HTTP_201_CREATED)
+
+
+
 @api_view(['POST',])
 @authentication_classes([TokenAuthentication,])
 @permission_classes([IsAuthenticated,])
@@ -93,14 +97,16 @@ def upload_image(request, filename, format = None):
     Allowed images' types
     '''
     allowed_ext = ("image/png", "image/jpeg")
-
+    #
+    # token check
+    #
     if not DoubleCheck(token = request.auth).is_valid():
-        return JsonResponse({'detail' : 'your token has expired'}, status = status.HTTP_403_FORBIDDEN)
+        return JsonResponse({'detail' : 'your token has expired!'}, status = status.HTTP_401_UNAUTHORIZED)
 
     content_type = request.META['CONTENT_TYPE']
     content = request.data['file']
     if content_type == None or content_type not in allowed_ext:
-        return JsonResponse({"detail":"extension not allowed"}, status = status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({'detail' : 'extension not allowed!'}, status = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
     '''
     IS FILE SIZE ACCEPTABLE ?
     '''
@@ -111,18 +117,21 @@ def upload_image(request, filename, format = None):
 
     global ImageQueue
 
-    if ImageQueue.get(request.user.username, False):
-        return JsonResponse({'detail':'this user has already uploaded an image!'}, status = status.HTTP_409_CONFLICT)
-    
     try:
+        if not ImageQueue.get(request.user.username, False):
+            ImageQueue[request.user.username] = []
+            if len(ImageQueue[request.user.username]) > 4:
+                # 5 images allowed
+                return JsonResponse({'detail' : 'maximum number of images reached!'}, status = status.HTTP_409_CONFLICT)
+
         handler = ImageHandler(filename = filename, content = content, user = request.user, content_type = content_type)
         pk = handler.open()
-        ImageQueue[request.user.username] = pk
+        ImageQueue[request.user.username].append(pk)
     except Exception:
-        ImageQueue.pop(request.user.username)
+        ImageQueue.pop(request.user.username, None)
         return JsonResponse({'detail' : 'something went wrong!'}, status = status.HTTP_400_BAD_REQUEST)
     
-    return HttpResponse(status = status.HTTP_201_CREATED)
+    return JsonResponse({'detail' : 'image uploaded!'}, status = status.HTTP_201_CREATED)
     
     
     
@@ -164,17 +173,17 @@ class BookManager(viewsets.GenericViewSet):
         user = GnumaUser.objects.get(user = request.user)
         try: 
             b = Book.objects.get(isbn = request.data['isbn'], classes = user.classM)
-            return HttpResponse(status = status.HTTP_201_CREATED)
+            return JsonResponse({'detail' : 'book created!'}, status = status.HTTP_201_CREATED)
         except Book.DoesNotExist:
             try:     
                 b = Book.objects.get(isbn = request.data['isbn'])
                 b.classes.add(user.classM)
-                return HttpResponse(status = status.HTTP_201_CREATED)
+                return JsonResponse({'detail' : 'book created!'}, status = status.HTTP_201_CREATED)
             except Book.DoesNotExist:
                 b = Book.objects.create(title = request.data['title'], author = request.data['author'], isbn = request.data['isbn'])
                 b.save()
                 b.classes.add(user.classM)
-                return HttpResponse(status = status.HTTP_201_CREATED)
+                return JsonResponse({'detail' : 'book created!'}, status = status.HTTP_201_CREATED)
   
     '''
     The following method lists all the Books instances.
@@ -188,6 +197,7 @@ class BookManager(viewsets.GenericViewSet):
         serializer = BookSerializer(book, many = False)
         return JsonResponse(serializer.data, status = status.HTTP_200_OK, safe = False)
     
+    '''
     @action(detail = False, methods = ['post'])
     def search(self, request):
         if 'keyword' not in request.data:
@@ -196,7 +206,7 @@ class BookManager(viewsets.GenericViewSet):
         book = e.get_candidates()
         serializer = BookSerializer(book, many = False)
         return JsonResponse(serializer.data, status = status.HTTP_200_OK, safe = False)
-
+    '''
     
 '''
 -------------------------------------------------------------------------------------------------------------------+
@@ -226,9 +236,9 @@ class AdManager(viewsets.GenericViewSet):
     def enqueue(self, request):
         user = GnumaUser.objects.get(user = request.user)
 
-        instance = {'title': request.data['title'], 'price': request.data['price'], 'seller': user, 'enabled': False}
+        instance = {'description': request.data['description'], 'price': request.data['price'], 'seller': user, 'enabled': False, 'condition' : request.data['condition']}
         if not self.get_serializer_class()(data = instance).is_valid():
-            return HttpResponse(status = status.HTTP_400_BAD_REQUEST)
+            return JsonResponse({'detail' : 'bad format!'}, status = status.HTTP_400_BAD_REQUEST)
         enqueued = Ad.objects.create(**instance)
         instance = {'ad': enqueued, 'book_title': request.data['book_title'], 'isbn': request.data['isbn']}
         try:
@@ -243,9 +253,9 @@ class AdManager(viewsets.GenericViewSet):
         user.save()
 
         
-        image_pk = ImageQueue.pop(request.user.username, None)
-        if image_pk != None:
-            image = ImageAd.objects.get(pk = image_pk)
+        image_pk_array = ImageQueue.pop(request.user.username, None)
+        for img in image_pk_array:
+            image = ImageAd.objects.get(pk = img)
             image.ad = enqueued
             image.save()
         
@@ -274,7 +284,7 @@ class AdManager(viewsets.GenericViewSet):
             return JsonResponse({'detail':'The user cannot insert any other item!'}, status = status.HTTP_403_FORBIDDEN)
         
         # Check the arguments' validity
-        if 'title' not in request.data or 'price' not in request.data or 'isbn' not in request.data:
+        if 'description' not in request.data or 'price' not in request.data or 'isbn' not in request.data or 'condition' not in request.data:
             return JsonResponse({"detail":"one or more arguments are missing!"}, status = status.HTTP_400_BAD_REQUEST)
 
 
@@ -290,7 +300,7 @@ class AdManager(viewsets.GenericViewSet):
         except Book.DoesNotExist:
             return JsonResponse({'detail':'the book does not exist'}, status = status.HTTP_400_BAD_REQUEST)
 
-        instance = {'title': request.data['title'], 'price': request.data['price'], 'book': book, 'seller': user}
+        instance = {'description': request.data['description'], 'price': request.data['price'], 'book': book, 'seller': user, 'condition' : request.data['condition']}
 
         try: 
             self.get_serializer_class()(data = instance).is_valid(raise_exception = True)
@@ -306,89 +316,62 @@ class AdManager(viewsets.GenericViewSet):
             Ad.objects.get(book = book, seller = user)
             return JsonResponse({'detail':'item already exists!'}, status = status.HTTP_409_CONFLICT)
         except Ad.DoesNotExist:
-                newAd = Ad.objects.create(**instance)
+            newAd = Ad.objects.create(**instance)
         newAd.save()
         
         #
         # Relate the new item to its images, if it has any.
         # 
-        image_pk = ImageQueue.pop(request.user.username, None)
-        if image_pk != None:
-            image = ImageAd.objects.get(pk = image_pk)
+        image_pk_array = ImageQueue.pop(request.user.username, None)
+        for img in image_pk_array:
+            image = ImageAd.objects.get(pk = img)
             image.ad = newAd
             image.save()
 
         user.adsCreated = user.adsCreated+1
         user.save()
         
-        return HttpResponse(status = status.HTTP_201_CREATED)
+        return JsonResponse({'detail' : 'item created!'}, status = status.HTTP_201_CREATED)
 
 
     def retrieve(self, request, *args, **kwargs):
         ad = self.get_object()
-        serializer = self.get_serializer_class()(ad, many = False)
+        serializer = self.get_serializer_class()(ad, many = False, context = {'request': request})
         return JsonResponse(serializer.data, status = status.HTTP_200_OK, safe = False)
 
 
     @action(detail = False, methods = ['post'])
     def search(self, request):
-        if 'keyword' not in request.data:
-            return JsonResponse({"detail":"One or more arguments are missing!"}, status = status.HTTP_400_BAD_REQUEST)
-        e = Engine(model = Book, lookup_field = 'title', keyword = request.data['keyword'], geo = False)
-        book = e.get_candidates()
-        serializer = self.get_serializer_class()(Ad.objects.filter(book = book), many = True)
-        return JsonResponse(serializer.data, status=status.HTTP_200_OK, safe = False)
+        #
+        # The first step attempts to determine whether the user has chosen one of the hints or not.
+        # If the POST request contains an 'isbn' key it means the user has effectively chosen one hints,
+        # and then this view just returns the items related to the book with that isbn.
+        # If the request does not contain the 'isbn' key, then this just tries to figure out what the user
+        # may be looking for.
+        #
+        # This view returns items grouped by office.
+        #
 
-    
-    @action(detail = False, methods = ['post'])
-    def geo_search(self, request):
-        return JsonResponse({'detail':'this service is not available'}, status = status.HTTP_403_FORBIDDEN)
-    
-
-
+        if 'isbn' not in request.data and 'keyword' not in request.data:
+            return JsonResponse({'detail':'one or more argument are missing!'}, status = status.HTTP_400_BAD_REQUEST)
         
-'''
--------------------------------------------------------------------------------------------------------------------+
-                                                                                                                   |
-Engine                                                                                                         |
-                                                                                                                   |
--------------------------------------------------------------------------------------------------------------------+
-'''        
-
-class Engine:
-
-    def __init__(self, **kwargs):
-        self.model = kwargs['model'] 
-        self.lookup_field = kwargs['lookup_field']
-        self.keyword = kwargs['keyword']
+        if 'isbn' in request.data and 'keyword' in request.data:
+            return JsonResponse({'detail':'ambiguous arguments!'}, status = status.HTTP_400_BAD_REQUEST) 
         
-        '''
-        Max number of related results.
-        '''
-        if 'max' in kwargs:
-            self.max = kwargs['max']
+        if 'isbn' in request.data:
+            #
+            # The user has chosen the book from the hints.
+            #
+            response = {}
+            isbn = request.data['isbn']
+            ads = Ad.objects.filter(book__pk = isbn)
+            #
+            # Sorting function
+            #
+            results = self.get_serializer_class()(ads, many = True, context = {'request' : request})
+            response['resultType'] = 'single'      
+            response['results'] = results.data
+
+            return JsonResponse(response, status = status.HTTP_200_OK, safe = False)
         else:
-            self.max = 3
-
-        if kwargs['geo']:
-            self.location = kwargs['location']
-
-    def get_related(self):
-        min = len(self.keyword)
-        related = None
-        for item in self.model.objects.all():
-            title = getattr(item, self.lookup_field)
-            differences = sum(a!=b for a, b in zip(title, self.keyword))-abs(len(self.keyword)-len(title))
-            if differences < min:
-                min = differences
-                related = item
-        return related
-
-    def get_candidates(self):
-        try:
-            parameters = {self.lookup_field : self.keyword}
-            models = self.model.objects.get(**parameters)
-            return models
-        except self.model.DoesNotExist:
-            return self.get_related()
-
+            return JsonResponse({'detail':'this function is not implemented!'}, status = status.HTTP_400_BAD_REQUEST)

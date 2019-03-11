@@ -1,15 +1,16 @@
+# Python imports
+import random
+
 # Django imports
 from django.conf import settings
 
 # Local imports
-from .models import ImageAd, Ad, GnumaUser
+from .models import ImageAd
 
 # Pillow
 from PIL import Image
 
-'''
-Must be tested
-'''
+
 class ImageHandler:
 
     content_types_dict_dot = {
@@ -35,7 +36,7 @@ class ImageHandler:
         '''
 
     def open(self, *args, **kwargs):
-        n = str(Ad.objects.filter(seller = GnumaUser.objects.get(user=self.user)).count())
+        n = str(random.randint(0,400))
         newFilename =''.join([self.filename, '_', n, self.content_type_dot])
 
         with self.content.open() as f:

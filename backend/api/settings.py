@@ -16,8 +16,8 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Directory containing ads' images.
-MEDIA_ROOT = os.path.join(BASE_DIR, 'img/')  
-MEDIA_URL = 'http://localhost:8000/'    
+MEDIA_ROOT = os.path.join(BASE_DIR, 'img/')
+MEDIA_URL = 'http://localhost:8000/'
 
 
 # Quick-start development settings - unsuitable for production
@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    #3rd parties
+    # 3rd parties
     'PIL',
     'corsheaders',
     'rest_framework',
@@ -53,8 +53,9 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'rest_auth.registration',
+    'haystack',
 
-    #local
+    # local
     'gnuma.apps.GnumaConfig',
 ]
 
@@ -148,7 +149,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
     ],
-    'DEFAULT_AUTHENTICATION_CLASSES':[
+    'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.TokenAuthentication',
     ],
@@ -160,3 +161,18 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 SITE_ID = 1
 
 REST_SESSION_LOGIN = False
+
+#
+#   Haystack connections
+#
+HAYSTACK_CONNECTIONS = {
+    'default': {
+        'ENGINE': 'haystack.backends.whoosh_backend.WhooshEngine',
+        'PATH': 'C:/Users/Utente/code/Gnuma/indexes',
+        'TIMEOUT': 60 * 5,
+        'INCLUDE_SPELLING': True,
+        'STORAGE': 'file',
+        'POST_LIMIT': 128 * 1024 * 1024,
+        'BATCH_SIZE': 100,
+    },
+}

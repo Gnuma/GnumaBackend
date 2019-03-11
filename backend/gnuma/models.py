@@ -64,7 +64,7 @@ class Book(models.Model):
         return self.title
     
 class GnumaUser(models.Model):
-    user = models.OneToOneField(User, on_delete = models.CASCADE, primary_key = True)
+    user = models.OneToOneField(User, on_delete = models.CASCADE, primary_key = True, related_name = 'gnuma_user')
     classM = models.ForeignKey(Class, on_delete = models.CASCADE) 
     FREE = 'Free'
     PRO = 'Pro'
@@ -80,13 +80,14 @@ class GnumaUser(models.Model):
         return User.__str__(self.user)
 
 class Ad(models.Model):
-    title = models.CharField(max_length = 200)
+    description = models.CharField(max_length = 280)
+    condition = models.IntegerField()
     price = models.FloatField()
     book = models.ForeignKey(Book, on_delete = models.CASCADE, blank = True, null = True)
     seller = models.ForeignKey(GnumaUser, on_delete = models.CASCADE)
     enabled = models.BooleanField(default = True)
     def __str__(self):
-        return GnumaUser.__str__(self.seller)+":"+self.title
+        return GnumaUser.__str__(self.seller)+":"+self.description
 
 class Queue_ads(models.Model):
     ad = models.ForeignKey(Ad, on_delete = models.CASCADE)
