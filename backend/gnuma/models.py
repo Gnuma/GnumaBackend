@@ -1,6 +1,14 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+
+#
+#   Return the path to the right folder.
+#
+
+def user_directory(instance, filename):
+    return '{}/{}'.format(instance.seller.user.username, filename)
+
 class Office(models.Model):
     name = models.CharField(max_length = 50)
     cap = models.CharField(max_length = 5)
@@ -56,7 +64,7 @@ class Book(models.Model):
         return self.title
     
 class GnumaUser(models.Model):
-    user = models.OneToOneField(User, on_delete = models.CASCADE, primary_key = True)
+    user = models.OneToOneField(User, on_delete = models.CASCADE, primary_key = True, related_name = 'gnuma_user')
     classM = models.ForeignKey(Class, on_delete = models.CASCADE) 
     FREE = 'Free'
     PRO = 'Pro'
@@ -66,21 +74,20 @@ class GnumaUser(models.Model):
         (PRO, 'Pro user'),
         (BUSINESS, 'Business user'),
     )
-    # The following fields hasn't been migrated yet
     level = models.CharField(max_length = 8, choices = LEVELS, default = FREE)
     adsCreated = models.IntegerField(default = 0)
     def __str__(self):
         return User.__str__(self.user)
 
 class Ad(models.Model):
-    title = models.CharField(max_length = 200)
-    image = models.CharField(max_length = 2000, blank = True, null = True) # 2000 ? IE MAX URL LENGTH
+    description = models.CharField(max_length = 280)
+    condition = models.IntegerField()
     price = models.FloatField()
     book = models.ForeignKey(Book, on_delete = models.CASCADE, blank = True, null = True)
     seller = models.ForeignKey(GnumaUser, on_delete = models.CASCADE)
     enabled = models.BooleanField(default = True)
     def __str__(self):
-        return GnumaUser.__str__(self.seller)+":"+self.title
+        return GnumaUser.__str__(self.seller)+":"+self.description
 
 class Queue_ads(models.Model):
     ad = models.ForeignKey(Ad, on_delete = models.CASCADE)
@@ -90,3 +97,14 @@ class Queue_ads(models.Model):
 
     def __str__(self):
         return self.ad.__str__()+" "+self.book_title+" "+str(self.created)
+
+#
+# New model: enable the users to upload more than a single image per item.
+#
+class ImageAd(models.Model):
+    created = models.DateTimeField(auto_now_add = True)
+    ad = models.ForeignKey(Ad, on_delete = models.CASCADE, related_name = 'image_ad', blank = True, null = True)
+    image = models.ImageField(upload_to = 'items/')
+
+    def __str__(self):
+        return '{} --> {}'.format(Ad.__str__(self.ad), self.image.url)

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import GnumaUser, Book, Office, Class, Ad, Queue_ads
+from .models import GnumaUser, Book, Office, Class, Ad, Queue_ads, ImageAd
 from django.contrib.auth.models import User
 
 
@@ -8,14 +8,8 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = '__all__'
+        fields = ('username',)
 
-class GnumaUserSerializer(serializers.ModelSerializer):
-    user = UserSerializer(many  = False, read_only = True)
-
-    class Meta:
-        model = GnumaUser
-        fields = '__all__'
 
 class OfficeSerializer(serializers.ModelSerializer):
 
@@ -29,8 +23,15 @@ class ClassSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Class
-        fields = '__all__'
+        fields = ['office']
 
+
+class GnumaUserSerializer(serializers.ModelSerializer):
+    user = UserSerializer(many  = False, read_only = True)
+    classM = ClassSerializer(many = False, read_only = True)
+    class Meta:
+        model = GnumaUser
+        fields = '__all__'
 
 
 class BookSerializer(serializers.ModelSerializer):
@@ -44,10 +45,21 @@ class BookSerializer(serializers.ModelSerializer):
 class AdSerializer(serializers.ModelSerializer):
     book = BookSerializer(many = False, read_only = True)
     seller = GnumaUserSerializer(many = False, read_only = True)
+    image_ad = serializers.SerializerMethodField()
 
     class Meta:
         model = Ad
-        fields = '__all__'
+        fields = ('pk', 'description', 'price', 'condition', 'book', 'seller', 'image_ad')
+
+    def get_image_ad(self, ad):
+        request = self.context.get('request')
+        images = ImageAd.objects.filter(ad = ad)
+        serialized_field = []
+
+        for image in images:
+            serialized_field.append(request.build_absolute_uri(image.image.url))
+        
+        return serialized_field
 
 
 class QueueAdsSerializer(serializers.ModelSerializer):
@@ -56,3 +68,21 @@ class QueueAdsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Queue_ads
         fields = '__all__'
+
+#
+# The following serializers are used by the whoami API.
+#
+class WhoAmIGnumaUserSerializer(serializers.ModelSerializer):
+    classM = ClassSerializer(many = False, read_only = True)
+
+    class Meta:
+        model = GnumaUser
+        fields = ['classM']
+
+
+class WhoAmISerializer(serializers.ModelSerializer):
+    gnuma_user = WhoAmIGnumaUserSerializer(many = False, read_only = True)
+
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'gnuma_user')

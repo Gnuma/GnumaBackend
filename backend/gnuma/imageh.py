@@ -1,26 +1,34 @@
-from .models import GnumaUser, Book, Office, Class, Ad, Queue_ads
+# Python imports
+import random
+
+# Django imports
 from django.conf import settings
 
-'''
-Must be tested
+# Local imports
+from .models import ImageAd
 
-It probably isn't gonna work; and even if it does, I'm pretty sure that's not the best way to handle such a thing.
+# Pillow
+from PIL import Image
 
-I'm using the database too many. Now I've just added this Queue thing, and even if it is bad as shit, it should actually work, so let's just hope that it will.
-'''
+
 class ImageHandler:
 
-    content_types_dict = {
+    content_types_dict_dot = {
         'image/jpeg' : '.jpg',
         'image/png' : '.png'
     }
 
+    content_types_dict_PIL = {
+        'image/jpeg': 'JPEG',
+        'image/png': 'PNG'
+    }
+
     def __init__(self, **kwargs):
         self.filename = kwargs['filename']
-        self.content_type = self.content_types_dict.get(kwargs['content_type'], None)
-        self.content = kwargs['content']
+        self.content_type_dot = self.content_types_dict_dot.get(kwargs['content_type'], None)
+        self.content_type = self.content_types_dict_PIL.get(kwargs['content_type'], None)
+        self.content = kwargs['content']        # File obj
         self.user = kwargs['user']
-        self.file_obj = None
 
         '''
         if '.' in self.filename:
@@ -28,17 +36,29 @@ class ImageHandler:
         '''
 
     def open(self, *args, **kwargs):
-        n = str(Ad.objects.filter(seller = GnumaUser.objects.get(user=self.user)).count())
+        n = str(random.randint(0,400))
+        newFilename =''.join([self.filename, '_', n, self.content_type_dot])
 
-        try:
-            f = open(r''.join([settings.IMAGES_DIR, self.user.username, '/',(''.join([self.filename, n, self.content_type]))]) , "wb")
-        except Exception as e:
-            raise e
-
-        for byte in self.content.chunks():
-            f.write(byte)
-        f.close()
-        return ''.join([self.filename, n, self.content_type]) 
+        with self.content.open() as f:
+            try:
+                i = Image.open(f)
+            except Exception:
+                raise
+            #
+            # If the image type is not what we expected just return 400.
+            #
+            if i.format != self.content_type:
+                i.close()
+                raise Exception         # Must be changed
+            #
+            # Let's create a new ImageAd
+            #
+            # Must be tested
+            #
+            newImage = ImageAd.objects.create()
+            newImage.save()
+            newImage.image.save(newFilename, f)
+            return newImage.pk
     
     def resize(self, *args, **kwargs):
         pass
