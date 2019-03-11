@@ -80,9 +80,6 @@ def upload_image(request, filename, format = None):
     Allowed images' types
     '''
     allowed_ext = ("image/png", "image/jpeg")
-    #
-    # token check
-    #
     if not DoubleCheck(token = request.auth).is_valid():
         return JsonResponse({'detail' : 'your token has expired!'}, status = status.HTTP_401_UNAUTHORIZED)
 
@@ -138,9 +135,6 @@ class BookManager(viewsets.GenericViewSet):
     If the Book that is going to be created already exists, it just does nothing.
     '''
     def create(self, request):
-        '''
-        The user must be authenticated to get access to this view, so request.user necessarily exists.
-        '''
         if 'isbn' not in request.data or 'title' not in request.data or 'author' not in request.data:
             return JsonResponse({"detail":"one or more arguments are missing!"}, status = status.HTTP_400_BAD_REQUEST)
         user = GnumaUser.objects.get(user = request.user)
@@ -169,17 +163,6 @@ class BookManager(viewsets.GenericViewSet):
         book = self.get_object()
         serializer = BookSerializer(book, many = False)
         return JsonResponse(serializer.data, status = status.HTTP_200_OK, safe = False)
-    
-    '''
-    @action(detail = False, methods = ['post'])
-    def search(self, request):
-        if 'keyword' not in request.data:
-            return JsonResponse({"detail":"One or more arguments are missing!"}, status = status.HTTP_400_BAD_REQUEST)
-        e = Engine(model = Book, lookup_field = 'title', keyword = request.data['keyword'], geo = False)
-        book = e.get_candidates()
-        serializer = BookSerializer(book, many = False)
-        return JsonResponse(serializer.data, status = status.HTTP_200_OK, safe = False)
-    '''
     
 '''
 -------------------------------------------------------------------------------------------------------------------+
