@@ -22,26 +22,9 @@ from .imageh import ImageHandler
 from .doubleCheckLayer import DoubleCheck
 
 
-''' 
-
-This dict works just like a queue.
-Each time a user wants to create an item he must issues two different requests:
-
-1) The first one will upload the image onto the sever.
-
-2) The second one will eventually relate the image, which has been previously uploaded, to the a new item.
-
-This dict enable these two endpoints to exchange informations.                                        
-
-'''
-
 ImageQueue = {}
 
-'''
-init the internal user object.
 
-#1: To be rewritten.
-'''
 @api_view(['POST',])
 @authentication_classes([TokenAuthentication,])
 def init_user(request):
@@ -81,9 +64,8 @@ def init_user(request):
         newUser.save()
     return HttpResponse(status = status.HTTP_201_CREATED)
 
-'''
-Must be tested
-'''
+
+
 @api_view(['POST',])
 @authentication_classes([TokenAuthentication,])
 @permission_classes([IsAuthenticated,])
@@ -117,17 +99,7 @@ def upload_image(request, filename, format = None):
     
     return HttpResponse(status = status.HTTP_201_CREATED)
     
-    
-    
-    
 
-'''
--------------------------------------------------------------------------------------------------------------------+
-                                                                                                                   |
-Book Manager                                                                                                       |
-                                                                                                                   |
--------------------------------------------------------------------------------------------------------------------+
-'''
 
 class BookManager(viewsets.GenericViewSet):
 
@@ -190,20 +162,14 @@ class BookManager(viewsets.GenericViewSet):
         serializer = BookSerializer(book, many = False)
         return JsonResponse(serializer.data, status = status.HTTP_200_OK, safe = False)
 
-    
-'''
--------------------------------------------------------------------------------------------------------------------+
-                                                                                                                   |
-Ad Manager                                                                                                         |
-                                                                                                                   |
--------------------------------------------------------------------------------------------------------------------+
-'''
+
 
 class AdManager(viewsets.GenericViewSet):
     authentication_classes = [TokenAuthentication]
     safe_actions = ('list', 'retrieve','search','geo_search')
     queryset = Ad.objects.all()
     serializer_class = AdSerializer
+
 
     def get_permissions(self):
         if self.action in self.safe_actions:
@@ -213,9 +179,6 @@ class AdManager(viewsets.GenericViewSet):
         return [permission() for permission in permission_classes]
 
 
-    '''
-    Enqueue the items that don't have a confirmed book related.
-    '''
     def enqueue(self, request):
         user = GnumaUser.objects.get(user = request.user)
         image = ImageQueue.pop(request.user.username, None)
@@ -237,40 +200,23 @@ class AdManager(viewsets.GenericViewSet):
         return JsonResponse({'detail':'item enqueued!'}, status = status.HTTP_201_CREATED)
 
 
-
-    '''
-    The following method creates an item.
-
-    The client should indicate whether the book has been selected from the hints.
-    If it wasn't the client should add 'book_title' into the JSON object.
-    Each request that has the 'book_title' creates an enqueued item, that eventually will be enabled by the staff.
-    
-    '''
     def create(self, request):
         user = GnumaUser.objects.get(user = request.user)
-        
-        # Must be tested
         if not DoubleCheck(token = request.auth).is_valid():
             return JsonResponse({'detail' : 'your token has expired'}, status = status.HTTP_401_UNAUTHORIZED) # Returns the same as user's limit reached. Must be changed
 
-        # Check whether the user has reached his items' limit
+
         if user.level == "Free" and user.adsCreated == 10:
             return JsonResponse({'detail':'The user cannot insert any other item!'}, status = status.HTTP_403_FORBIDDEN)
         elif user.level == "Pro" and user.adsCreated == 20:
             return JsonResponse({'detail':'The user cannot insert any other item!'}, status = status.HTTP_403_FORBIDDEN)
         
-        # Check the arguments' validity
         if 'title' not in request.data or 'price' not in request.data or 'isbn' not in request.data:
             return JsonResponse({"detail":"one or more arguments are missing!"}, status = status.HTTP_400_BAD_REQUEST)
 
-
-        # If the book isn't in the database just enqueue the item
         if 'book_title' in request.data:
             return self.enqueue(request)
         
-
-        # This get should never raise and exception, unless the endpoint hasn't been called by the React client.
-        # WHITE_LIST CHECK
         try: 
             book = Book.objects.get(isbn = request.data['isbn'])
         except Book.DoesNotExist:
@@ -278,8 +224,6 @@ class AdManager(viewsets.GenericViewSet):
 
         image = ImageQueue.pop(request.user.username, None)
         instance = {'title': request.data['title'], 'image': image,'price': request.data['price'], 'book': book, 'seller': user}
-
-        #print('DEBUG : '+repr(self.get_serializer_class()(data = instance)._writable_fields))
 
         try: 
             self.get_serializer_class()(data = instance).is_valid(raise_exception = True)
@@ -289,7 +233,6 @@ class AdManager(viewsets.GenericViewSet):
         except TypeError as e:
             print(str(e))
             return JsonResponse({'detail':'the server was not able to process your request!'}, status = status.HTTP_400_BAD_REQUEST)
-       
        
         try:
             Ad.objects.get(book = book, seller = user)
@@ -323,52 +266,3 @@ class AdManager(viewsets.GenericViewSet):
     @action(detail = False, methods = ['post'])
     def geo_search(self, request):
         return JsonResponse({'detail':'this service is not available'}, status = status.HTTP_403_FORBIDDEN)
-    
-
-
-        
-'''
--------------------------------------------------------------------------------------------------------------------+
-                                                                                                                   |
-Engine                                                                                                         |
-                                                                                                                   |
--------------------------------------------------------------------------------------------------------------------+
-'''        
-
-class Engine:
-
-    def __init__(self, **kwargs):
-        self.model = kwargs['model'] 
-        self.lookup_field = kwargs['lookup_field']
-        self.keyword = kwargs['keyword']
-        
-        '''
-        Max number of related results.
-        '''
-        if 'max' in kwargs:
-            self.max = kwargs['max']
-        else:
-            self.max = 3
-
-        if kwargs['geo']:
-            self.location = kwargs['location']
-
-    def get_related(self):
-        min = len(self.keyword)
-        related = None
-        for item in self.model.objects.all():
-            title = getattr(item, self.lookup_field)
-            differences = sum(a!=b for a, b in zip(title, self.keyword))-abs(len(self.keyword)-len(title))
-            if differences < min:
-                min = differences
-                related = item
-        return related
-
-    def get_candidates(self):
-        try:
-            parameters = {self.lookup_field : self.keyword}
-            models = self.model.objects.get(**parameters)
-            return models
-        except self.model.DoesNotExist:
-            return self.get_related()
-
