@@ -43,11 +43,13 @@ class ImageHandler:
             try:
                 i = Image.open(f)
             except Exception:
+                print("Cannot open the image")
                 raise
             #
             # If the image type is not what we expected just return 400.
             #
             if i.format != self.content_type:
+                print("Bad format")
                 i.close()
                 raise Exception         # Must be changed
             #
