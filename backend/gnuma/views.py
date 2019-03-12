@@ -105,6 +105,7 @@ def upload_image(request, filename, format = None):
 
     content_type = request.META['CONTENT_TYPE']
     content = request.data['file']
+    print("Content-Type detected:%s" % content_type)
     if content_type == None or content_type not in allowed_ext:
         return JsonResponse({'detail' : 'extension not allowed!'}, status = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
     '''
