@@ -106,8 +106,8 @@ def upload_image(request, filename, format = None):
     content_type = request.META['CONTENT_TYPE']
     content = request.data['file']
     print("Content-Type detected:%s" % content_type)
-    if content_type == None or content_type not in allowed_ext:
-        return JsonResponse({'detail' : 'extension not allowed!'}, status = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
+    #if content_type == None or content_type not in allowed_ext:
+        #return JsonResponse({'detail' : 'extension not allowed!'}, status = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
     '''
     IS FILE SIZE ACCEPTABLE ?
     '''
@@ -125,7 +125,7 @@ def upload_image(request, filename, format = None):
                 # 5 images allowed
                 return JsonResponse({'detail' : 'maximum number of images reached!'}, status = status.HTTP_409_CONFLICT)
 
-        handler = ImageHandler(filename = filename, content = content, user = request.user, content_type = content_type)
+        handler = ImageHandler(filename = filename, content = content, user = request.user, content_type = "image/jpeg")
         pk = handler.open()
         ImageQueue[request.user.username].append(pk)
     except Exception:
