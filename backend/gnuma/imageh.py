@@ -38,8 +38,11 @@ class ImageHandler:
     def open(self, *args, **kwargs):
         n = str(random.randint(0,400))
         newFilename =''.join([self.filename, '_', n, self.content_type_dot])
-
+        
+        print('DEBUG PRINT: %s' % self.content)
+        
         with self.content.open() as f:
+            print('DEBUG PRINT: %s' % f)
             try:
                 i = Image.open(f)
             except Exception:
