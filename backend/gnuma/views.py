@@ -21,6 +21,9 @@ from .serializers import BookSerializer, AdSerializer, QueueAdsSerializer
 from .imageh import ImageHandler
 from .doubleCheckLayer import DoubleCheck
 
+# debug imports
+import traceback
+
 
 ImageQueue = {}
 
@@ -85,6 +88,7 @@ def upload_image(request, filename, format = None):
 
     content_type = request.META['CONTENT_TYPE']
     content = request.data['file']
+
     if content_type == None or content_type not in allowed_ext:
         return JsonResponse({'detail' : 'extension not allowed!'}, status = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
     '''
@@ -100,19 +104,20 @@ def upload_image(request, filename, format = None):
     try:
         if not ImageQueue.get(request.user.username, False):
             ImageQueue[request.user.username] = []
+        else:    
             if len(ImageQueue[request.user.username]) > 4:
                 # 5 images allowed
                 return JsonResponse({'detail' : 'maximum number of images reached!'}, status = status.HTTP_409_CONFLICT)
 
-        handler = ImageHandler(filename = filename, content = content, user = request.user, content_type = content_type)
+        handler = ImageHandler(content = content, content_type = content_type)
         pk = handler.open()
         ImageQueue[request.user.username].append(pk)
     except Exception:
+        traceback.print_exc()
         ImageQueue.pop(request.user.username, None)
         return JsonResponse({'detail' : 'something went wrong!'}, status = status.HTTP_400_BAD_REQUEST)
     
     return JsonResponse({'detail' : 'image uploaded!'}, status = status.HTTP_201_CREATED)
-    
 
 
 class BookManager(viewsets.GenericViewSet):
