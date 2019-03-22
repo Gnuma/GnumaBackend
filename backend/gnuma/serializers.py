@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import GnumaUser, Book, Office, Class, Ad, Queue_ads, ImageAd
 from django.contrib.auth.models import User
+from .customFields import Base64ImageField
 
 
 
@@ -86,3 +87,12 @@ class WhoAmISerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('username', 'email', 'gnuma_user')
+
+
+class ImageAdSerializer(serializers.ModelSerializer):
+    image = Base64ImageField(read_only = False, max_length=None, use_url=True)
+
+    class Meta:
+        model = ImageAd
+        fields = '__all__'
+
