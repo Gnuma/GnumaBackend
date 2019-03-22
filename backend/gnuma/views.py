@@ -108,7 +108,6 @@ def upload_image(request, filename, format = None):
             if len(ImageQueue[request.user.username]) > 4:
                 # 5 images allowed
                 return JsonResponse({'detail' : 'maximum number of images reached!'}, status = status.HTTP_409_CONFLICT)
-
         handler = ImageHandler(content = content, content_type = content_type)
         pk = handler.open()
         ImageQueue[request.user.username].append(pk)
