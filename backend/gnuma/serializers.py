@@ -86,7 +86,7 @@ class WhoAmISerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('username', 'email', 'gnuma_user')
+        fields = ('pk' ,'username', 'email', 'gnuma_user')
 
 
 class ImageAdSerializer(serializers.ModelSerializer):
