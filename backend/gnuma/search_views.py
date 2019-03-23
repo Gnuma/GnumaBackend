@@ -62,13 +62,18 @@ def getHintsOffices(request):
         results = []
         for i in r:
             json_obj = {}
+            json_obj['id'] = i.pk
             json_obj['name'] = i.text
             json_obj['cap'] = Office.objects.get(pk = i.pk).cap
             results.append(json_obj)
         result['results'] = results
         return JsonResponse(result, status = status.HTTP_200_OK)
 
-    return JsonResponse({'results' : 'Nessun risultato!'}, status = status.HTTP_404_NOT_FOUND)
+    #
+    # If there's no match the API just returns a blank list.
+    #    
+    json_obj = {}
+    return JsonResponse({'results' : json_obj}, status = status.HTTP_404_NOT_FOUND)
 
 
 

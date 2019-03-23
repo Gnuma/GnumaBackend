@@ -21,27 +21,13 @@ from .serializers import BookSerializer, AdSerializer, QueueAdsSerializer
 from .imageh import ImageHandler
 from .doubleCheckLayer import DoubleCheck
 
+# debug imports
+import traceback
 
-''' 
-
-This dict works just like a queue.
-Each time a user wants to create an item he must issues two different requests:
-
-1) The first one will upload the image onto the sever.
-
-2) The second one will eventually relate the image, which has been previously uploaded, to the a new item.
-
-This dict enable these two endpoints to exchange informations.                                        
-
-'''
 
 ImageQueue = {}
 
-'''
-init the internal user object.
 
-#1: To be rewritten.
-'''
 @api_view(['POST',])
 @authentication_classes([TokenAuthentication,])
 def init_user(request):
@@ -97,17 +83,14 @@ def upload_image(request, filename, format = None):
     Allowed images' types
     '''
     allowed_ext = ("image/png", "image/jpeg")
-    #
-    # token check
-    #
     if not DoubleCheck(token = request.auth).is_valid():
         return JsonResponse({'detail' : 'your token has expired!'}, status = status.HTTP_401_UNAUTHORIZED)
 
     content_type = request.META['CONTENT_TYPE']
     content = request.data['file']
-    print("Content-Type detected:%s" % content_type)
-    #if content_type == None or content_type not in allowed_ext:
-        #return JsonResponse({'detail' : 'extension not allowed!'}, status = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
+
+    if content_type == None or content_type not in allowed_ext:
+        return JsonResponse({'detail' : 'extension not allowed!'}, status = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
     '''
     IS FILE SIZE ACCEPTABLE ?
     '''
@@ -121,30 +104,20 @@ def upload_image(request, filename, format = None):
     try:
         if not ImageQueue.get(request.user.username, False):
             ImageQueue[request.user.username] = []
+        else:    
             if len(ImageQueue[request.user.username]) > 4:
                 # 5 images allowed
                 return JsonResponse({'detail' : 'maximum number of images reached!'}, status = status.HTTP_409_CONFLICT)
-
-        handler = ImageHandler(filename = filename, content = content, user = request.user, content_type = "image/jpeg")
+        handler = ImageHandler(content = content, content_type = content_type)
         pk = handler.open()
         ImageQueue[request.user.username].append(pk)
     except Exception:
+        traceback.print_exc()
         ImageQueue.pop(request.user.username, None)
         return JsonResponse({'detail' : 'something went wrong!'}, status = status.HTTP_400_BAD_REQUEST)
     
     return JsonResponse({'detail' : 'image uploaded!'}, status = status.HTTP_201_CREATED)
-    
-    
-    
-    
 
-'''
--------------------------------------------------------------------------------------------------------------------+
-                                                                                                                   |
-Book Manager                                                                                                       |
-                                                                                                                   |
--------------------------------------------------------------------------------------------------------------------+
-'''
 
 class BookManager(viewsets.GenericViewSet):
 
@@ -166,9 +139,6 @@ class BookManager(viewsets.GenericViewSet):
     If the Book that is going to be created already exists, it just does nothing.
     '''
     def create(self, request):
-        '''
-        The user must be authenticated to get access to this view, so request.user necessarily exists.
-        '''
         if 'isbn' not in request.data or 'title' not in request.data or 'author' not in request.data:
             return JsonResponse({"detail":"one or more arguments are missing!"}, status = status.HTTP_400_BAD_REQUEST)
         user = GnumaUser.objects.get(user = request.user)
@@ -198,17 +168,6 @@ class BookManager(viewsets.GenericViewSet):
         serializer = BookSerializer(book, many = False)
         return JsonResponse(serializer.data, status = status.HTTP_200_OK, safe = False)
     
-    '''
-    @action(detail = False, methods = ['post'])
-    def search(self, request):
-        if 'keyword' not in request.data:
-            return JsonResponse({"detail":"One or more arguments are missing!"}, status = status.HTTP_400_BAD_REQUEST)
-        e = Engine(model = Book, lookup_field = 'title', keyword = request.data['keyword'], geo = False)
-        book = e.get_candidates()
-        serializer = BookSerializer(book, many = False)
-        return JsonResponse(serializer.data, status = status.HTTP_200_OK, safe = False)
-    '''
-    
 '''
 -------------------------------------------------------------------------------------------------------------------+
                                                                                                                    |
@@ -223,6 +182,7 @@ class AdManager(viewsets.GenericViewSet):
     queryset = Ad.objects.all()
     serializer_class = AdSerializer
 
+
     def get_permissions(self):
         if self.action in self.safe_actions:
             permission_classes = [AllowAny]
@@ -231,9 +191,6 @@ class AdManager(viewsets.GenericViewSet):
         return [permission() for permission in permission_classes]
 
 
-    '''
-    Enqueue the items that don't have a confirmed book related.
-    '''
     def enqueue(self, request):
         user = GnumaUser.objects.get(user = request.user)
 
@@ -273,12 +230,10 @@ class AdManager(viewsets.GenericViewSet):
     '''
     def create(self, request):
         user = GnumaUser.objects.get(user = request.user)
-        
-        # Must be tested
         if not DoubleCheck(token = request.auth).is_valid():
             return JsonResponse({'detail' : 'your token has expired'}, status = status.HTTP_401_UNAUTHORIZED)
 
-        # Check whether the user has reached his items' limit
+
         if user.level == "Free" and user.adsCreated == 10:
             return JsonResponse({'detail':'The user cannot insert any other item!'}, status = status.HTTP_403_FORBIDDEN)
         elif user.level == "Pro" and user.adsCreated == 20:
@@ -288,14 +243,9 @@ class AdManager(viewsets.GenericViewSet):
         if 'description' not in request.data or 'price' not in request.data or 'isbn' not in request.data or 'condition' not in request.data:
             return JsonResponse({"detail":"one or more arguments are missing!"}, status = status.HTTP_400_BAD_REQUEST)
 
-
-        # If the book isn't in the database just enqueue the item
         if 'book_title' in request.data:
             return self.enqueue(request)
         
-
-        # This get should never raise and exception, unless the endpoint hasn't been called by the React client.
-        # WHITE_LIST CHECK
         try: 
             book = Book.objects.get(isbn = request.data['isbn'])
         except Book.DoesNotExist:
@@ -311,7 +261,6 @@ class AdManager(viewsets.GenericViewSet):
         except TypeError as e:
             print(str(e))
             return JsonResponse({'detail':'the server was not able to process your request!'}, status = status.HTTP_400_BAD_REQUEST)
-       
        
         try:
             Ad.objects.get(book = book, seller = user)
