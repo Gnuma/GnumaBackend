@@ -20,7 +20,7 @@ from .doubleCheckLayer import DoubleCheck
 @permission_classes([IsAuthenticated, ])
 def whoami(request):
     if not DoubleCheck(token = request.auth).is_valid():
-        return JsonResponse({'detail':'your token has expired!'}, status = status.HTTP_401_UNAUTHORIZIED)
+        return JsonResponse({'detail':'your token has expired!'}, status = status.HTTP_401_UNAUTHORIZED)
 
     s = WhoAmISerializer(request.user, many = False)
     return JsonResponse(s.data, status = status.HTTP_200_OK, safe = False)
