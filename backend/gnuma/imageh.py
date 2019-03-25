@@ -6,6 +6,7 @@ from django.conf import settings
 
 # Local imports
 from .models import ImageAd
+from .serializers import ImageAdSerializer
 
 # Pillow
 from PIL import Image
@@ -13,55 +14,37 @@ from PIL import Image
 
 class ImageHandler:
 
-    content_types_dict_dot = {
-        'image/jpeg' : '.jpg',
-        'image/png' : '.png'
-    }
-
-    content_types_dict_PIL = {
-        'image/jpeg': 'JPEG',
-        'image/png': 'PNG'
-    }
-
     def __init__(self, **kwargs):
-        self.filename = kwargs['filename']
-        self.content_type_dot = self.content_types_dict_dot.get(kwargs['content_type'], None)
-        self.content_type = self.content_types_dict_PIL.get(kwargs['content_type'], None)
+        self.content_type = kwargs['content_type']
         self.content = kwargs['content']        # File obj
-        self.user = kwargs['user']
 
-        '''
-        if '.' in self.filename:
-            raise something
-        '''
 
     def open(self, *args, **kwargs):
-        n = str(random.randint(0,400))
-        newFilename =''.join([self.filename, '_', n, self.content_type_dot])
-        
-        print('DEBUG PRINT: %s' % self.content)
-        
         with self.content.open() as f:
-            print('DEBUG PRINT: %s' % f)
+            instance = {'image' : f}
+
+            serializer = ImageAdSerializer(data = instance)
+            
+
             try:
-                i = Image.open(f)
+                serializer.is_valid(raise_exception = True)
             except Exception:
                 raise
+            
             #
-            # If the image type is not what we expected just return 400.
+            # If the image is valid, just checks whether the type of the image is what we were said in the header.
             #
-            if i.format != self.content_type:
-                i.close()
-                raise Exception         # Must be changed
+            # Note that PIL saves for the image's type during the DRF's validating process.
             #
-            # Let's create a new ImageAd
-            #
-            # Must be tested
-            #
-            newImage = ImageAd.objects.create()
-            newImage.save()
-            newImage.image.save(newFilename, f)
-            return newImage.pk
+
+            if self.content_type != serializer._validated_data['image'].content_type:
+                #
+                # The image type does not match with the one reported in the header
+                #
+                raise Exception
+            instance = serializer.save()
+            
+            return instance.pk
     
     def resize(self, *args, **kwargs):
         pass

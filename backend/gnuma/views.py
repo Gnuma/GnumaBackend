@@ -21,6 +21,9 @@ from .serializers import BookSerializer, AdSerializer, QueueAdsSerializer
 from .imageh import ImageHandler
 from .doubleCheckLayer import DoubleCheck
 
+# debug imports
+import traceback
+
 
 ImageQueue = {}
 
@@ -85,6 +88,7 @@ def upload_image(request, filename, format = None):
 
     content_type = request.META['CONTENT_TYPE']
     content = request.data['file']
+
     if content_type == None or content_type not in allowed_ext:
         return JsonResponse({'detail' : 'extension not allowed!'}, status = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
     '''
@@ -95,24 +99,16 @@ def upload_image(request, filename, format = None):
     #if content_length != content.size:
     #    return JsonResponse({'detail' : 'image size does not coincide!'})
 
-    global ImageQueue
-
     try:
-        if not ImageQueue.get(request.user.username, False):
-            ImageQueue[request.user.username] = []
-            if len(ImageQueue[request.user.username]) > 4:
-                # 5 images allowed
-                return JsonResponse({'detail' : 'maximum number of images reached!'}, status = status.HTTP_409_CONFLICT)
-
-        handler = ImageHandler(filename = filename, content = content, user = request.user, content_type = content_type)
+        handler = ImageHandler(content = content, content_type = content_type)
         pk = handler.open()
-        ImageQueue[request.user.username].append(pk)
+        print("PK loaded: " +str(pk))
     except Exception:
-        ImageQueue.pop(request.user.username, None)
+        traceback.print_exc()
         return JsonResponse({'detail' : 'something went wrong!'}, status = status.HTTP_400_BAD_REQUEST)
-    
-    return JsonResponse({'detail' : 'image uploaded!'}, status = status.HTTP_201_CREATED)
-    
+
+    return JsonResponse({'pk' : pk}, status = status.HTTP_201_CREATED)
+
 
 
 class BookManager(viewsets.GenericViewSet):
@@ -206,12 +202,12 @@ class AdManager(viewsets.GenericViewSet):
         user.adsCreated = user.adsCreated+1
         user.save()
 
-        
-        image_pk_array = ImageQueue.pop(request.user.username, None)
-        for img in image_pk_array:
-            image = ImageAd.objects.get(pk = img)
-            image.ad = enqueued
-            image.save()
+        if 'pks' in request.data:
+            print(repr(request.data['pks']))
+            for p_k in request.data['pks']:
+                image = ImageAd.objects.get(pk = p_k)
+                image.ad = newAd
+                image.save()
         
         return JsonResponse({'detail':'item enqueued!'}, status = status.HTTP_201_CREATED)
 
@@ -268,11 +264,13 @@ class AdManager(viewsets.GenericViewSet):
         #
         # Relate the new item to its images, if it has any.
         # 
-        image_pk_array = ImageQueue.pop(request.user.username, None)
-        for img in image_pk_array:
-            image = ImageAd.objects.get(pk = img)
-            image.ad = newAd
-            image.save()
+        if 'pks' in request.data:
+            print(repr(request.data['pks']))
+            for p_k in request.data['pks']:
+                image = ImageAd.objects.get(pk = p_k)
+                image.ad = newAd
+                image.save()
+
 
         user.adsCreated = user.adsCreated+1
         user.save()

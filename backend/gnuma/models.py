@@ -2,12 +2,6 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
-#
-#   Return the path to the right folder.
-#
-
-def user_directory(instance, filename):
-    return '{}/{}'.format(instance.seller.user.username, filename)
 
 class Office(models.Model):
     name = models.CharField(max_length = 50)
@@ -25,6 +19,7 @@ class Office(models.Model):
     
     def __str__(self):
         return self.name
+
 
 class Class(models.Model):
     P  = '1'
@@ -54,6 +49,7 @@ class Class(models.Model):
     def __str__(self):
         return self.grade+" "+self.division+" "+self.office.name
 
+
 class Book(models.Model):
     title = models.CharField(max_length = 50)
     author = models.CharField(max_length = 50, default = 'Sconosciuto', blank = True)
@@ -63,6 +59,7 @@ class Book(models.Model):
     def __str__(self):
         return self.title
     
+
 class GnumaUser(models.Model):
     user = models.OneToOneField(User, on_delete = models.CASCADE, primary_key = True, related_name = 'gnuma_user')
     classM = models.ForeignKey(Class, on_delete = models.CASCADE) 
@@ -79,6 +76,7 @@ class GnumaUser(models.Model):
     def __str__(self):
         return User.__str__(self.user)
 
+
 class Ad(models.Model):
     description = models.CharField(max_length = 280)
     condition = models.IntegerField()
@@ -89,6 +87,7 @@ class Ad(models.Model):
     def __str__(self):
         return GnumaUser.__str__(self.seller)+":"+self.description
 
+
 class Queue_ads(models.Model):
     ad = models.ForeignKey(Ad, on_delete = models.CASCADE)
     isbn = models.CharField(max_length = 13)
@@ -97,6 +96,7 @@ class Queue_ads(models.Model):
 
     def __str__(self):
         return self.ad.__str__()+" "+self.book_title+" "+str(self.created)
+
 
 #
 # New model: enable the users to upload more than a single image per item.
@@ -107,4 +107,6 @@ class ImageAd(models.Model):
     image = models.ImageField(upload_to = 'items/')
 
     def __str__(self):
+        if self.ad == None:
+            return '{}'.format(self.image.url)
         return '{} --> {}'.format(Ad.__str__(self.ad), self.image.url)
