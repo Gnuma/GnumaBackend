@@ -25,6 +25,7 @@ class ImageHandler:
 
             serializer = ImageAdSerializer(data = instance)
             
+
             try:
                 serializer.is_valid(raise_exception = True)
             except Exception:
