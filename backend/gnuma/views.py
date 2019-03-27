@@ -13,7 +13,7 @@ from rest_framework.decorators import api_view, authentication_classes, action, 
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import  IsAuthenticated , AllowAny
 from rest_framework.exceptions import ValidationError
-from rest_framework.parsers import FileUploadParser
+from rest_framework.parsers import MultiPartParser
 
 # Local imports
 from .models import GnumaUser, Book, Office, Class, Ad, Queue_ads, ImageAd
@@ -190,6 +190,13 @@ class AdManager(viewsets.GenericViewSet):
             permission_classes = [IsAuthenticated] 
         return [permission() for permission in permission_classes]
 
+    
+    def get_parsers(self):
+        if self.action == 'create':
+            parser_classes = MultiPartParser
+        
+        return [parser() for parser in parser_classes]
+
 
     def enqueue(self, request):
         user = GnumaUser.objects.get(user = request.user)
@@ -262,6 +269,22 @@ class AdManager(viewsets.GenericViewSet):
             print(str(e))
             return JsonResponse({'detail':'the server was not able to process your request!'}, status = status.HTTP_400_BAD_REQUEST)
        
+        images = {}
+        if request.data['0']:
+            '''
+            The request has at least one image attached.
+            '''
+            images['0'] = request.data['0']
+            i = 1
+            while str(i) in request.data:
+                images[str(i)] = request.data[str(i)]
+                i += 1
+
+        content_type = content_type = request.META['CONTENT_TYPE']
+        result = ImageHandler(content = images, content_type = content_type)
+        
+
+
         try:
             Ad.objects.get(book = book, seller = user)
             return JsonResponse({'detail':'item already exists!'}, status = status.HTTP_409_CONFLICT)
@@ -273,10 +296,11 @@ class AdManager(viewsets.GenericViewSet):
         # Relate the new item to its images, if it has any.
         # 
         image_pk_array = ImageQueue.pop(request.user.username, None)
-        for img in image_pk_array:
-            image = ImageAd.objects.get(pk = img)
-            image.ad = newAd
-            image.save()
+        if image_pk_array != None:
+            for img in image_pk_array:
+                image = ImageAd.objects.get(pk = img)
+                image.ad = newAd
+                image.save()
 
         user.adsCreated = user.adsCreated+1
         user.save()
