@@ -6,7 +6,6 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-django = "*"
 djangorestframework = "*"
 django-cors-headers = "*"
 mysqlclient = "*"
@@ -16,6 +15,7 @@ pipfile = "*"
 pillow = "*"
 django-haystack = "*"
 whoosh = "*"
+django = "*"
 
 [requires]
 python_version = "3.6"

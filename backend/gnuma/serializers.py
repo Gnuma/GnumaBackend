@@ -90,7 +90,6 @@ class WhoAmISerializer(serializers.ModelSerializer):
 
 
 class ImageAdSerializer(serializers.ModelSerializer):
-    image = Base64ImageField(read_only = False, max_length=None, use_url=True)
 
     class Meta:
         model = ImageAd

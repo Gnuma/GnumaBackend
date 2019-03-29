@@ -17,7 +17,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Directory containing ads' images.
 MEDIA_ROOT = os.path.join(BASE_DIR, 'img')
-MEDIA_URL = 'http://localhost:8000/'
+MEDIA_URL = 'http://17029.l.time4vps.cloud/'
 
 
 # Quick-start development settings - unsuitable for production
@@ -168,7 +168,7 @@ REST_SESSION_LOGIN = False
 HAYSTACK_CONNECTIONS = {
     'default': {
         'ENGINE': 'haystack.backends.whoosh_backend.WhooshEngine',
-        'PATH': 'C:/Users/Utente/code/Gnuma/indexes',
+        'PATH': '/root/search_engines/whoosh',
         'TIMEOUT': 60 * 5,
         'INCLUDE_SPELLING': True,
         'STORAGE': 'file',

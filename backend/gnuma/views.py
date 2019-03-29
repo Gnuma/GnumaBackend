@@ -13,7 +13,7 @@ from rest_framework.decorators import api_view, authentication_classes, action, 
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import  IsAuthenticated , AllowAny
 from rest_framework.exceptions import ValidationError
-from rest_framework.parsers import FileUploadParser
+from rest_framework.parsers import MultiPartParser
 
 # Local imports
 from .models import GnumaUser, Book, Office, Class, Ad, Queue_ads, ImageAd
@@ -77,7 +77,6 @@ def init_user(request):
 @api_view(['POST',])
 @authentication_classes([TokenAuthentication,])
 @permission_classes([IsAuthenticated,])
-@parser_classes([FileUploadParser,])
 def upload_image(request, filename, format = None):
     '''
     Allowed images' types
@@ -99,24 +98,16 @@ def upload_image(request, filename, format = None):
     #if content_length != content.size:
     #    return JsonResponse({'detail' : 'image size does not coincide!'})
 
-    global ImageQueue
-
     try:
-        if not ImageQueue.get(request.user.username, False):
-            ImageQueue[request.user.username] = []
-        else:    
-            if len(ImageQueue[request.user.username]) > 4:
-                # 5 images allowed
-                return JsonResponse({'detail' : 'maximum number of images reached!'}, status = status.HTTP_409_CONFLICT)
         handler = ImageHandler(content = content, content_type = content_type)
         pk = handler.open()
-        ImageQueue[request.user.username].append(pk)
+        print("PK loaded: " +str(pk))
     except Exception:
         traceback.print_exc()
-        ImageQueue.pop(request.user.username, None)
         return JsonResponse({'detail' : 'something went wrong!'}, status = status.HTTP_400_BAD_REQUEST)
-    
-    return JsonResponse({'detail' : 'image uploaded!'}, status = status.HTTP_201_CREATED)
+
+    return JsonResponse({'pk' : pk}, status = status.HTTP_201_CREATED)
+
 
 
 class BookManager(viewsets.GenericViewSet):
@@ -184,11 +175,13 @@ class AdManager(viewsets.GenericViewSet):
 
 
     def get_permissions(self):
+        print("TYPE " + str(type(self)))
         if self.action in self.safe_actions:
             permission_classes = [AllowAny]
         else:
             permission_classes = [IsAuthenticated] 
         return [permission() for permission in permission_classes]
+        
 
 
     def enqueue(self, request):
@@ -210,12 +203,12 @@ class AdManager(viewsets.GenericViewSet):
         user.adsCreated = user.adsCreated+1
         user.save()
 
-        
-        image_pk_array = ImageQueue.pop(request.user.username, None)
-        for img in image_pk_array:
-            image = ImageAd.objects.get(pk = img)
-            image.ad = enqueued
-            image.save()
+        if 'pks' in request.data:
+            print(repr(request.data['pks']))
+            for p_k in request.data['pks']:
+                image = ImageAd.objects.get(pk = p_k)
+                image.ad = newAd
+                image.save()
         
         return JsonResponse({'detail':'item enqueued!'}, status = status.HTTP_201_CREATED)
 
@@ -262,6 +255,23 @@ class AdManager(viewsets.GenericViewSet):
             print(str(e))
             return JsonResponse({'detail':'the server was not able to process your request!'}, status = status.HTTP_400_BAD_REQUEST)
        
+        images = {}
+        if request.data['0']:
+            '''
+            The request has at least one image attached.
+            '''
+            print("Immagini trovate nella richiesta")
+            images['0'] = request.data['0']
+            print(request.data['0'])
+            i = 1
+            while str(i) in request.data:
+                images[str(i)] = request.data[str(i)]
+                i += 1
+            content_type = content_type = request.META['CONTENT_TYPE']
+            image = ImageHandler(content = images, content_type = content_type)
+            result = image.open()
+
+
         try:
             Ad.objects.get(book = book, seller = user)
             return JsonResponse({'detail':'item already exists!'}, status = status.HTTP_409_CONFLICT)
@@ -273,10 +283,11 @@ class AdManager(viewsets.GenericViewSet):
         # Relate the new item to its images, if it has any.
         # 
         image_pk_array = ImageQueue.pop(request.user.username, None)
-        for img in image_pk_array:
-            image = ImageAd.objects.get(pk = img)
-            image.ad = newAd
-            image.save()
+        if image_pk_array != None:
+            for img in image_pk_array:
+                image = ImageAd.objects.get(pk = img)
+                image.ad = newAd
+                image.save()
 
         user.adsCreated = user.adsCreated+1
         user.save()
