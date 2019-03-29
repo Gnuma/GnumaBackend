@@ -19,6 +19,7 @@ class ImageHandler:
     def __init__(self, **kwargs):
         self.content_type = kwargs['content_type']
         self.content = kwargs["content"]
+
     def open(self, *args, **kwargs):
         instances = []
         for i in range(len(self.content)):

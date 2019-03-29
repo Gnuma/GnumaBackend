@@ -183,6 +183,13 @@ class AdManager(viewsets.GenericViewSet):
         return [permission() for permission in permission_classes]
         
 
+    
+    def get_parsers(self):
+        if self.action == 'create':
+            parser_classes = MultiPartParser
+        
+        return [parser() for parser in parser_classes]
+
 
     def enqueue(self, request):
         user = GnumaUser.objects.get(user = request.user)
@@ -263,6 +270,7 @@ class AdManager(viewsets.GenericViewSet):
             print("Immagini trovate nella richiesta")
             images['0'] = request.data['0']
             print(request.data['0'])
+            images['0'] = request.data['0']
             i = 1
             while str(i) in request.data:
                 images[str(i)] = request.data[str(i)]
@@ -270,6 +278,10 @@ class AdManager(viewsets.GenericViewSet):
             content_type = content_type = request.META['CONTENT_TYPE']
             image = ImageHandler(content = images, content_type = content_type)
             result = image.open()
+
+        content_type = content_type = request.META['CONTENT_TYPE']
+        result = ImageHandler(content = images, content_type = content_type)
+        
 
 
         try:
@@ -286,6 +298,13 @@ class AdManager(viewsets.GenericViewSet):
         if image_pk_array != None:
             for img in image_pk_array:
                 image = ImageAd.objects.get(pk = img)
+                image.ad = newAd
+                image.save()
+
+        if 'pks' in request.data:
+            print(repr(request.data['pks']))
+            for p_k in request.data['pks']:
+                image = ImageAd.objects.get(pk = p_k)
                 image.ad = newAd
                 image.save()
 
