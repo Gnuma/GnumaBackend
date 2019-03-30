@@ -13,6 +13,9 @@ from .serializers import ImageAdSerializer
 # Pillow
 from PIL import Image
 
+# debug imports
+import traceback
+
 
 class ImageHandler:
 
@@ -33,6 +36,7 @@ class ImageHandler:
             try:
                 serializer.is_valid(raise_exception = True)
             except Exception as e:
+                traceback.print_exc()
                 print(str(e))
                 raise
             
