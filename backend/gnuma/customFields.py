@@ -16,6 +16,7 @@ class Base64ImageField(serializers.ImageField):
                 #header, data = data.split(';base64,')
 
             # Try to decode the file. Return validation error if it fails.
+            print('IM HERE')
             try:
                 decoded_file = base64.b64decode(data)
             except TypeError:
@@ -31,12 +32,6 @@ class Base64ImageField(serializers.ImageField):
 
             data = ContentFile(decoded_file, name=complete_file_name)
 
-            if not hasattr(data, 'size'):
-                print("DEBUG PRINT: SIZE MISSING")
-                self.fail('invalid_image')
-            elif not hasattr(data, 'name'):
-                print("DEBUG PRINT: NAME MISSING")
-                self.fail('invalid_image')
 
         return super(Base64ImageField, self).to_internal_value(data)
 
