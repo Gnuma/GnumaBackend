@@ -256,8 +256,6 @@ class AdManager(viewsets.GenericViewSet):
             '''
             print("Immagini trovate nella richiesta")
             images['0'] = request.data['0']
-            print(request.data['0'])
-            return JsonResponse({"detail":"This function hasn't been implemented yet!"}, status = status.HTTP_400_BAD_REQUEST)
             i = 1
             while str(i) in request.data:
                 images[str(i)] = request.data[str(i)]
