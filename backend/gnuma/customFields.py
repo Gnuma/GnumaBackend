@@ -10,8 +10,8 @@ class Base64ImageField(serializers.ImageField):
         print('IM HERE')
         try:
             decoded_file = base64.b64decode(data)
-        except TypeError:
-            print("DEBUG PRINT : THE SERIALIZER WAS NOT ABLE TO DECODE THE BODY")
+        except TypeError as e:
+            print("DEBUG PRINT : " + str(e))
             self.fail('invalid_image')
 
         # Generate file name:
