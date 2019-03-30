@@ -19,6 +19,7 @@ class Base64ImageField(serializers.ImageField):
             try:
                 decoded_file = base64.b64decode(data)
             except TypeError:
+                print("DEBUG PRINT : THE SERIALIZER WAS NOT ABLE TO DECODE THE BODY")
                 self.fail('invalid_image')
 
             # Generate file name:
