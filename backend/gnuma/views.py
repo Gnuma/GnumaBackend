@@ -254,7 +254,6 @@ class AdManager(viewsets.GenericViewSet):
             '''
             The request has at least one image attached.
             '''
-            print("Immagini trovate nella richiesta")
             images['0'] = request.data['0']
             i = 1
             while str(i) in request.data:
