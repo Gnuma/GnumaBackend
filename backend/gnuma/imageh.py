@@ -27,7 +27,7 @@ class ImageHandler:
         instances = []
         for i in range(len(self.content)):
             content = {}
-            content['content'] = self.content[str(i)]
+            content = self.content[str(i)]
             instance = {'image' : content}
 
             serializer = ImageAdSerializer(data = instance)
