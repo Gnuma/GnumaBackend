@@ -31,6 +31,10 @@ class Base64ImageField(serializers.ImageField):
 
             data = ContentFile(decoded_file, name=complete_file_name)
 
+            if not hasattr(data, 'size') or not hasattr(data, 'name'):
+                print("DEBUG PRINT: DATA IS NOT A FILE")
+                self.fail('invalid_image')
+
         return super(Base64ImageField, self).to_internal_value(data)
 
     def get_file_extension(self, file_name, decoded_file):
