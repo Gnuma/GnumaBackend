@@ -183,13 +183,6 @@ class AdManager(viewsets.GenericViewSet):
         return [permission() for permission in permission_classes]
         
 
-    
-    def get_parsers(self):
-        if self.action == 'create':
-            parser_classes = MultiPartParser
-        
-        return [parser() for parser in parser_classes]
-
 
     def enqueue(self, request):
         user = GnumaUser.objects.get(user = request.user)
@@ -209,13 +202,6 @@ class AdManager(viewsets.GenericViewSet):
         enqueued.save()
         user.adsCreated = user.adsCreated+1
         user.save()
-
-        if 'pks' in request.data:
-            print(repr(request.data['pks']))
-            for p_k in request.data['pks']:
-                image = ImageAd.objects.get(pk = p_k)
-                image.ad = newAd
-                image.save()
         
         return JsonResponse({'detail':'item enqueued!'}, status = status.HTTP_201_CREATED)
 
@@ -263,6 +249,7 @@ class AdManager(viewsets.GenericViewSet):
             return JsonResponse({'detail':'the server was not able to process your request!'}, status = status.HTTP_400_BAD_REQUEST)
        
         images = {}
+        result = []
         if request.data['0']:
             '''
             The request has at least one image attached.
@@ -270,7 +257,7 @@ class AdManager(viewsets.GenericViewSet):
             print("Immagini trovate nella richiesta")
             images['0'] = request.data['0']
             print(request.data['0'])
-            images['0'] = request.data['0']
+            return JsonResponse({"detail":"This function hasn't been implemented yet!"}, status = status.HTTP_400_BAD_REQUEST)
             i = 1
             while str(i) in request.data:
                 images[str(i)] = request.data[str(i)]
@@ -279,10 +266,9 @@ class AdManager(viewsets.GenericViewSet):
             image = ImageHandler(content = images, content_type = content_type)
             result = image.open()
 
-        content_type = content_type = request.META['CONTENT_TYPE']
-        result = ImageHandler(content = images, content_type = content_type)
-        
-
+            #
+            # result variable is an ImageAd's array containing the images.
+            #
 
         try:
             Ad.objects.get(book = book, seller = user)
@@ -291,22 +277,9 @@ class AdManager(viewsets.GenericViewSet):
             newAd = Ad.objects.create(**instance)
         newAd.save()
         
-        #
-        # Relate the new item to its images, if it has any.
-        # 
-        image_pk_array = ImageQueue.pop(request.user.username, None)
-        if image_pk_array != None:
-            for img in image_pk_array:
-                image = ImageAd.objects.get(pk = img)
-                image.ad = newAd
-                image.save()
-
-        if 'pks' in request.data:
-            print(repr(request.data['pks']))
-            for p_k in request.data['pks']:
-                image = ImageAd.objects.get(pk = p_k)
-                image.ad = newAd
-                image.save()
+        for image in result:
+            image.ad = newAd
+            image.save()
 
         user.adsCreated = user.adsCreated+1
         user.save()
