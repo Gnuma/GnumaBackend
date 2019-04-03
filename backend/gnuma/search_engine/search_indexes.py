@@ -5,7 +5,7 @@ import datetime
 from haystack import indexes
 
 # local imports
-from .models import Book, Office
+from gnuma.models import Book, Office
 
 class BookIndex(indexes.SearchIndex, indexes.Indexable):
     text = indexes.CharField(document = True, use_template = True)

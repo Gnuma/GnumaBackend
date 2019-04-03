@@ -1,7 +1,12 @@
-from rest_framework import serializers
-from .models import GnumaUser, Book, Office, Class, Ad, Queue_ads, ImageAd
+# django import
 from django.contrib.auth.models import User
-from .customFields import Base64ImageField
+
+# rest imports
+from rest_framework import serializers
+
+# local imports
+from .models import GnumaUser, Book, Office, Class, Ad, Queue_ads, ImageAd, Comment
+from .core.customFields import Base64ImageField
 
 
 
@@ -89,11 +94,25 @@ class WhoAmISerializer(serializers.ModelSerializer):
         fields = ('pk' ,'username', 'email', 'gnuma_user')
 
 
-class ImageAdSerializer(serializers.ModelSerializer):
-    
+#
+# The following serializer is used by the AdManager.create endpoint in order to upload an image.
+#
+# Base64ImageField is parser which enable the client upload base64-encoded images. 
+#
+class ImageAdSerializer(serializers.ModelSerializer):   
     image = Base64ImageField(max_length=None, use_url=True,)
     
     class Meta:
         model = ImageAd
         fields = '__all__'
 
+
+#
+# The following serializers are used by the comments' subsystem.
+#
+class CommentSerializer(serializers.ModelSerializer):
+    user = GnumaUserSerializer(many = False, read_only = True)
+    
+    class Meta:
+        model = Comment
+        fields = '__all__'

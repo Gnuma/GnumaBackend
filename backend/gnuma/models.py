@@ -98,9 +98,6 @@ class Queue_ads(models.Model):
         return self.ad.__str__()+" "+self.book_title+" "+str(self.created)
 
 
-#
-# New model: enable the users to upload more than a single image per item.
-#
 class ImageAd(models.Model):
     created = models.DateTimeField(auto_now_add = True)
     ad = models.ForeignKey(Ad, on_delete = models.CASCADE, related_name = 'image_ad', blank = True, null = True)
@@ -110,3 +107,32 @@ class ImageAd(models.Model):
         if self.ad == None:
             return '{}'.format(self.image.url)
         return '{} --> {}'.format(Ad.__str__(self.ad), self.image.url)
+
+#
+# V2 models
+#
+class Comment(models.Model):
+    created = models.DateTimeField(auto_now_add = True)
+    updated = models.DateTimeField(auto_now = True)
+    is_edited = models.BooleanField(default = False)
+    content = models.CharField(max_length = 200)
+    item = models.ForeignKey(Ad, on_delete = models.CASCADE, related_name = 'comment_ad', blank = True, null = True)
+    parent = models.ForeignKey("self", on_delete = models.CASCADE, related_name = 'parent_child', blank = True, null = True)
+    user = models.ForeignKey(GnumaUser, on_delete = models.CASCADE)
+
+    def __str__(self):
+        if self.item == None:
+            return self.parent.__str__()+" "+self.content
+        else:
+            return self.item.__str__()+" "+self.content
+
+
+class Report(models.Model):
+    created = models.DateTimeField(auto_now_add = True)
+    comment = models.ForeignKey(Comment, on_delete = models.CASCADE)
+    sender = models.ForeignKey(GnumaUser, on_delete = models.CASCADE)
+    content = models.CharField(max_length = 200)
+
+    def __str__(self):
+        return self.sender.__str__() + " " + self.content
+

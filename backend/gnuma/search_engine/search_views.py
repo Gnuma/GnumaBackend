@@ -9,7 +9,7 @@ from rest_framework import status
 from haystack.query import SearchQuerySet
 
 # local imports
-from .models import Book, Office
+from gnuma.models import Book, Office
 from .search_indexes import BookIndex
 
 

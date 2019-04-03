@@ -19,7 +19,8 @@ from rest_framework.parsers import MultiPartParser
 from .models import GnumaUser, Book, Office, Class, Ad, Queue_ads, ImageAd
 from .serializers import BookSerializer, AdSerializer, QueueAdsSerializer
 from .imageh import ImageHandler
-from .doubleCheckLayer import DoubleCheck
+from .doubleCheck.doubleCheckLayer import DoubleCheck
+from .users_profiling.itemAccess import BaseProfiling
 
 # debug imports
 import traceback
@@ -72,41 +73,6 @@ def init_user(request):
 
     return JsonResponse({'detail' : 'GnumaUser successfully registered!'}, status = status.HTTP_201_CREATED)
 
-
-
-@api_view(['POST',])
-@authentication_classes([TokenAuthentication,])
-@permission_classes([IsAuthenticated,])
-def upload_image(request, filename, format = None):
-    '''
-    Allowed images' types
-    '''
-    allowed_ext = ("image/png", "image/jpeg")
-    if not DoubleCheck(token = request.auth).is_valid():
-        return JsonResponse({'detail' : 'your token has expired!'}, status = status.HTTP_401_UNAUTHORIZED)
-
-    content_type = request.META['CONTENT_TYPE']
-    content = request.data['file']
-
-    if content_type == None or content_type not in allowed_ext:
-        return JsonResponse({'detail' : 'extension not allowed!'}, status = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
-    '''
-    IS FILE SIZE ACCEPTABLE ?
-    '''
-    #content_length = int(request.META['CONTENT_LENGTH'])
-
-    #if content_length != content.size:
-    #    return JsonResponse({'detail' : 'image size does not coincide!'})
-
-    try:
-        handler = ImageHandler(content = content, content_type = content_type)
-        pk = handler.open()
-        print("PK loaded: " +str(pk))
-    except Exception:
-        traceback.print_exc()
-        return JsonResponse({'detail' : 'something went wrong!'}, status = status.HTTP_400_BAD_REQUEST)
-
-    return JsonResponse({'pk' : pk}, status = status.HTTP_201_CREATED)
 
 
 
@@ -175,13 +141,19 @@ class AdManager(viewsets.GenericViewSet):
 
 
     def get_permissions(self):
-        print("TYPE " + str(type(self)))
         if self.action in self.safe_actions:
             permission_classes = [AllowAny]
         else:
             permission_classes = [IsAuthenticated] 
         return [permission() for permission in permission_classes]
         
+
+    '''
+    The following method cannot be called directly. It's used by the create endpoint whenever it found a mismatch
+    beetwen the request's information and the db's. It basically allows Quipu to have a basic content-control system.
+
+    V2: This endpoint supports image uploading via multipart/form-data
+    '''
 
 
     def enqueue(self, request):
@@ -199,6 +171,29 @@ class AdManager(viewsets.GenericViewSet):
             return JsonResponse({'detail':'data is not valid!'}, status = status.HTTP_400_BAD_REQUEST)
         e = Queue_ads.objects.create(**instance)  
         e.save()
+
+        images = {}
+        result = []
+
+        if request.data['0']:
+            '''
+            The request has at least one image attached.
+            '''
+            images['0'] = request.data['0']
+            i = 1
+            while str(i) in request.data:
+                images[str(i)] = request.data[str(i)]
+                i += 1
+            content_type = request.META['CONTENT_TYPE']
+            image = ImageHandler(content = images, content_type = content_type)
+            result = image.open()
+            #
+            # result variable is an ImageAd's array containing the images.
+            #
+            for image in result:
+                image.ad = e
+                image.save()
+
         enqueued.save()
         user.adsCreated = user.adsCreated+1
         user.save()
@@ -213,6 +208,8 @@ class AdManager(viewsets.GenericViewSet):
     The client should indicate whether the book has been selected from the hints.
     If it wasn't the client should add 'book_title' into the JSON object.
     Each request that has the 'book_title' creates an enqueued item, that eventually will be enabled by the staff.   
+    
+    V2 : This method supports image uploading via multipart/form-data.
     '''
     def create(self, request):
         user = GnumaUser.objects.get(user = request.user)
@@ -248,6 +245,13 @@ class AdManager(viewsets.GenericViewSet):
             print(str(e))
             return JsonResponse({'detail':'the server was not able to process your request!'}, status = status.HTTP_400_BAD_REQUEST)
        
+        try:
+            Ad.objects.get(book = book, seller = user)
+            return JsonResponse({'detail':'item already exists!'}, status = status.HTTP_409_CONFLICT)
+        except Ad.DoesNotExist:
+            newAd = Ad.objects.create(**instance)
+        newAd.save()
+        
         images = {}
         result = []
         if request.data['0']:
@@ -259,33 +263,37 @@ class AdManager(viewsets.GenericViewSet):
             while str(i) in request.data:
                 images[str(i)] = request.data[str(i)]
                 i += 1
-            content_type = content_type = request.META['CONTENT_TYPE']
+            content_type = request.META['CONTENT_TYPE']
             image = ImageHandler(content = images, content_type = content_type)
             result = image.open()
-
             #
             # result variable is an ImageAd's array containing the images.
             #
-
-        try:
-            Ad.objects.get(book = book, seller = user)
-            return JsonResponse({'detail':'item already exists!'}, status = status.HTTP_409_CONFLICT)
-        except Ad.DoesNotExist:
-            newAd = Ad.objects.create(**instance)
-        newAd.save()
-        
-        for image in result:
-            image.ad = newAd
-            image.save()
+            for image in result:
+                image.ad = newAd
+                image.save()
 
         user.adsCreated = user.adsCreated+1
         user.save()
+
+        #
+        # Profiling
+        #
+        BaseProfiling.createAccess({'item' : newAd, 'user' : user})
         
         return JsonResponse({'detail' : 'item created!'}, status = status.HTTP_201_CREATED)
 
 
     def retrieve(self, request, *args, **kwargs):
         ad = self.get_object()
+
+        if request.user != None:
+            #
+            #   If the user is authenticated, register this access.
+            #
+            if not BaseProfiling.update({'item' : ad, 'user' : request.user}):
+                BaseProfiling.createAccess({'item' : ad, 'user' : request.user})
+
         serializer = self.get_serializer_class()(ad, many = False, context = {'request': request})
         return JsonResponse(serializer.data, status = status.HTTP_200_OK, safe = False)
 
@@ -294,12 +302,12 @@ class AdManager(viewsets.GenericViewSet):
     def search(self, request):
         #
         # The first step attempts to determine whether the user has chosen one of the hints or not.
-        # If the POST request contains an 'isbn' key it means the user has effectively chosen one hints,
+        # If the POST request contains an 'isbn' key, it means the user has effectively chosen one hints,
         # and then this view just returns the items related to the book with that isbn.
         # If the request does not contain the 'isbn' key, then this just tries to figure out what the user
         # may be looking for.
         #
-        # This view returns items grouped by office.
+        # This view returns items grouped by offices.
         #
 
         if 'isbn' not in request.data and 'keyword' not in request.data:
