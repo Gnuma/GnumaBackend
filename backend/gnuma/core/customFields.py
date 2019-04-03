@@ -7,7 +7,6 @@ class Base64ImageField(serializers.ImageField):
         import base64
         import six
         import uuid
-        print('IM HERE')
         try:
             decoded_file = base64.b64decode(data)
         except TypeError:
