@@ -280,8 +280,12 @@ class AdManager(viewsets.GenericViewSet):
         # Profiling
         #
         instance = {'item' : newAd, 'user' : user}
-        BaseProfiling.createAccess(**instance)
-        
+        try:
+            BaseProfiling.createAccess(**instance)
+        except Exception as e:
+            print(str(e))
+            return JsonResponse({'detail' : 'something went wrong!'}, status = status.HTTP_400_BAD_REQUEST)
+
         return JsonResponse({'detail' : 'item created!'}, status = status.HTTP_201_CREATED)
 
 
