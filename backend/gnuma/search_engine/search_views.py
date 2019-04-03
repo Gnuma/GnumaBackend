@@ -10,7 +10,6 @@ from haystack.query import SearchQuerySet
 
 # local imports
 from gnuma.models import Book, Office
-from .search_indexes import BookIndex
 
 
 #
