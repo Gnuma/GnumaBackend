@@ -279,7 +279,8 @@ class AdManager(viewsets.GenericViewSet):
         #
         # Profiling
         #
-        BaseProfiling.createAccess({'item' : newAd, 'user' : user})
+        instance = {'item' : newAd, 'user' : user}
+        BaseProfiling.createAccess(**instance)
         
         return JsonResponse({'detail' : 'item created!'}, status = status.HTTP_201_CREATED)
 
@@ -291,8 +292,9 @@ class AdManager(viewsets.GenericViewSet):
             #
             #   If the user is authenticated, register this access.
             #
-            if not BaseProfiling.update({'item' : ad, 'user' : request.user}):
-                BaseProfiling.createAccess({'item' : ad, 'user' : request.user})
+            instance = {'item' : ad, 'user' : request.user}
+            if not BaseProfiling.update(**instance):
+                BaseProfiling.createAccess(**instance)
 
         serializer = self.get_serializer_class()(ad, many = False, context = {'request': request})
         return JsonResponse(serializer.data, status = status.HTTP_200_OK, safe = False)
