@@ -293,7 +293,7 @@ class AdManager(viewsets.GenericViewSet):
     def retrieve(self, request, *args, **kwargs):
         ad = self.get_object()
 
-        if request.user != AnonymousUser:
+        if type(request.user) != AnonymousUser:
             #
             #   If the user is authenticated, register this access.
             #
