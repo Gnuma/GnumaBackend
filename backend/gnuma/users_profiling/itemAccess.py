@@ -3,7 +3,7 @@ from django.db.models import Q, Max
 
 # local imports
 from .models import ItemAccess
-from gnuma.models import Ad, Comment
+from gnuma.models import Ad, Comment, GnumaUser
 
 #
 # Anytime a user access to an item this class takes care of registering it.
@@ -14,7 +14,7 @@ class BaseProfiling(object):
     def createAccess(*args, **kwargs):
         try:
             item = kwargs['item']
-            user = kwargs['user']       # User object there's no need to check it
+            user = GnumaUser.objects.get(user = kwargs['user'])       # User object there's no need to check it
         except KeyError:
             raise
         
@@ -24,6 +24,9 @@ class BaseProfiling(object):
         return True
 
 
+    #
+    # Unlike the other methods, the 'user' key is a GnumaUser's instance
+    #
     @staticmethod
     def hasany(*args, **kwargs):
         try:
@@ -44,7 +47,7 @@ class BaseProfiling(object):
     def lastAccess(*args, **kwargs):
         try:
             item = kwargs['item']
-            user = kwargs['user']
+            user = GnumaUser.objects.get(user = kwargs['user'])
         except KeyError:
             raise
 
@@ -60,7 +63,7 @@ class BaseProfiling(object):
     def update(*args, **kwargs):
         try:
             item = kwargs['item']
-            user = kwargs['user']
+            user = GnumaUser.objects.get(user = kwargs['user'])
         except KeyError:
             raise
 
@@ -77,7 +80,7 @@ class BaseProfiling(object):
     @staticmethod
     def anynew(*args, **kwargs):
         try:
-            user = kwargs['user']
+            user = GnumaUser.objects.get(user = kwargs['user'])
         except KeyError:
             raise
         
