@@ -21,7 +21,6 @@ class Base64ImageField(serializers.ImageField):
 
         data = ContentFile(decoded_file, name=complete_file_name)
 
-
         return super(Base64ImageField, self).to_internal_value(data)
 
     def get_file_extension(self, file_name, decoded_file):

@@ -264,7 +264,7 @@ class AdManager(viewsets.GenericViewSet):
             while str(i) in request.data:
                 images[str(i)] = request.data[str(i)]
                 i += 1
-            print('IMAGES FOUND: ' + i)
+            print('IMAGES FOUND: ' + str(i))
             content_type = request.META['CONTENT_TYPE']
             image = ImageHandler(content = images, content_type = content_type)
             result = image.open()

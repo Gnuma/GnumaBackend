@@ -18,7 +18,6 @@ import traceback
 
 
 class ImageHandler:
-
     def __init__(self, **kwargs):
         self.content_type = kwargs['content_type']
         self.content = kwargs["content"]
