@@ -259,11 +259,11 @@ class AdManager(viewsets.GenericViewSet):
             '''
             The request has at least one image attached.
             '''
+            images['0'] = request.data['0']
             i = 1
             while str(i) in request.data:
                 images[str(i)] = request.data[str(i)]
                 i += 1
-            print('IMAGES FOUND: ' + str(i))
             content_type = request.META['CONTENT_TYPE']
             image = ImageHandler(content = images, content_type = content_type)
             result = image.open()
