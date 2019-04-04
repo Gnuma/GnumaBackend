@@ -38,7 +38,7 @@ class CommentHandler(object):
         newComment = Comment(**instance)
         newComment.save()
 
-        return True
+        return newComment
         
     #
     # Parameters:
@@ -71,7 +71,7 @@ class CommentHandler(object):
         newAnswer = Comment.objects.create(**instance)
         newAnswer.save()
 
-        return True
+        return newAnswer
 
     
     @staticmethod

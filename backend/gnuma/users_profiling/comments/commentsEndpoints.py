@@ -39,8 +39,8 @@ class CommentsEndpoints(viewsets.GenericViewSet):
         if request.data['type'] == 'comment':
             instance = {'item' : request.data['item'], 'content' : request.data['content'], 'user' : request.user}
             try:
-                CommentHandler.create(**instance)
-                return JsonResponse({'detail' : 'comment successfully created'}, status = status.HTTP_201_CREATED)
+                comment = CommentHandler.create(**instance)
+                return JsonResponse({'pk' : comment.pk, 'timestamp' : comment.created}, status = status.HTTP_201_CREATED)
             except Exception as e:
                 print(str(e))
                 return JsonResponse({'detail' : 'something went wrong!'}, status = status.HTTP_400_BAD_REQUEST)
@@ -50,8 +50,8 @@ class CommentsEndpoints(viewsets.GenericViewSet):
             #
             instance = {'comment' : request.data['item'], 'content' : request.data['content'], 'user' : request.user}
             try:
-                CommentHandler.create_answer(**instance)
-                return JsonResponse({'detail' : 'answer successfully created'}, status = status.HTTP_201_CREATED)
+                answer = CommentHandler.create_answer(**instance)
+                return JsonResponse({'pk' : answer.pk, 'timestamp' : answer.created}, status = status.HTTP_201_CREATED)
             except Exception as e:
                 print(str(e))
                 return JsonResponse({'detail' : 'something went wrong!'}, status = status.HTTP_400_BAD_REQUEST)
