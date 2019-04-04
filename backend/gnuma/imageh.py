@@ -24,7 +24,6 @@ class ImageHandler:
 
     def open(self, *args, **kwargs):
         instances = []
-        print("IMAGEH DETECTED: " + str(len(self.content)))
         for i in range(len(self.content)):
             content = {}
             content = self.content[str(i)]
@@ -53,7 +52,7 @@ class ImageHandler:
                 #raise Exception
             instances.append(serializer.save())
             
-            return instances
+        return instances
     
     def resize(self, *args, **kwargs):
         pass

@@ -259,7 +259,6 @@ class AdManager(viewsets.GenericViewSet):
             '''
             The request has at least one image attached.
             '''
-            images['0'] = request.data['0']
             i = 1
             while str(i) in request.data:
                 images[str(i)] = request.data[str(i)]
