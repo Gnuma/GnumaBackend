@@ -24,6 +24,7 @@ class ImageHandler:
 
     def open(self, *args, **kwargs):
         instances = []
+        print("IMAGEH DETECTED: " + str(len(self.content)))
         for i in range(len(self.content)):
             content = {}
             content = self.content[str(i)]
