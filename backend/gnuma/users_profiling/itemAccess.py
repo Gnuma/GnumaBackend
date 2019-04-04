@@ -63,7 +63,7 @@ class BaseProfiling(object):
         except KeyError:
             raise
 
-        if not BaseProfiling.hasany({'item_pk' : item, 'user' : user}):
+        if not BaseProfiling.hasany({'item' : item, 'user' : user}):
             return False
 
         access = ItemAccess.objects.get(item = item, owner = user)
