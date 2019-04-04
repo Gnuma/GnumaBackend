@@ -5,6 +5,7 @@ import os, sys
 from django.contrib.auth.models import User
 from django.http import JsonResponse
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 
 # Rest imports
 from rest_framework import viewsets, status
@@ -279,7 +280,7 @@ class AdManager(viewsets.GenericViewSet):
         #
         # Profiling
         #
-        instance = {'item' : newAd, 'user' : user}
+        instance = {'item' : newAd, 'user' : request.user}
         try:
             BaseProfiling.createAccess(**instance)
         except Exception as e:
@@ -292,7 +293,7 @@ class AdManager(viewsets.GenericViewSet):
     def retrieve(self, request, *args, **kwargs):
         ad = self.get_object()
 
-        if request.user != None:
+        if request.user != AnonymousUser:
             #
             #   If the user is authenticated, register this access.
             #
