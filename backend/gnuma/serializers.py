@@ -48,14 +48,36 @@ class BookSerializer(serializers.ModelSerializer):
         fields = ('isbn', 'title', 'author', 'classes')
 
 
+#
+# The following serializer are used by the comments' subsystem.
+#
+class AnswerSerializer(serializers.ModelSerializer):
+    user = GnumaUserSerializer(many = False, read_only = True)
+
+    class Meta:
+        model = Comment
+        fields = '__all__'
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    user = GnumaUserSerializer(many = False, read_only = True)
+    parent_child = AnswerSerializer(many = True, read_only = True) 
+
+    class Meta:
+        model = Comment
+        fields = ('user', 'content', 'parent_child')
+
+
+
 class AdSerializer(serializers.ModelSerializer):
     book = BookSerializer(many = False, read_only = True)
     seller = GnumaUserSerializer(many = False, read_only = True)
     image_ad = serializers.SerializerMethodField()
+    comment_ad = CommentSerializer(many = True, read_only = True)
 
     class Meta:
         model = Ad
-        fields = ('pk', 'description', 'price', 'condition', 'book', 'seller', 'image_ad')
+        fields = ('pk', 'description', 'price', 'condition', 'book', 'seller', 'image_ad', 'comment_ad')
 
     def get_image_ad(self, ad):
         request = self.context.get('request')
@@ -106,13 +128,3 @@ class ImageAdSerializer(serializers.ModelSerializer):
         model = ImageAd
         fields = '__all__'
 
-
-#
-# The following serializers are used by the comments' subsystem.
-#
-class CommentSerializer(serializers.ModelSerializer):
-    user = GnumaUserSerializer(many = False, read_only = True)
-    
-    class Meta:
-        model = Comment
-        fields = '__all__'
