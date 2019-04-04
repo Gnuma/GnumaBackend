@@ -41,7 +41,8 @@ def mailbox(request):
     if not DoubleCheck(token = request.auth).is_valid():
         return JsonResponse({'detail':'your token has expired!'}, status = status.HTTP_401_UNAUTHORIZED)
 
-    instances = BaseProfiling.anynew({'user' : request.user})
+    i = {'user' : request.user}
+    instances = BaseProfiling.anynew(**i)
     if instances:
         #
         # instances is an array provided with two elements:
