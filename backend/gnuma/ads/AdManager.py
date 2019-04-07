@@ -16,124 +16,21 @@ from rest_framework.permissions import  IsAuthenticated , AllowAny
 from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import MultiPartParser
 
-# Local imports
-from .models import GnumaUser, Book, Office, Class, Ad, Queue_ads, ImageAd
-from .serializers import BookSerializer, AdSerializer, QueueAdsSerializer
+# local imports
+from gnuma.models import GnumaUser, Book, Office, Class, Ad, Queue_ads, ImageAd
+from gnuma.serializers import BookSerializer, AdSerializer, QueueAdsSerializer
 from .imageh import ImageHandler
-from .doubleCheck.doubleCheckLayer import DoubleCheck
-from .users_profiling.itemAccess import BaseProfiling
+from gnuma.doubleCheck.doubleCheckLayer import DoubleCheck
+from gnuma.users_profiling.itemAccess import BaseProfiling
 
-# debug imports
-import traceback
+"""
+The following class contains all the endpoint that are meant to handle the following actions:
 
-
-ImageQueue = {}
-
-
-@api_view(['POST',])
-@authentication_classes([TokenAuthentication,])
-def init_user(request):
-    if 'key' not in request.data or 'classM' not in request.data or 'office' not in request.data:
-        return JsonResponse({'detail':'one or more arguments are missing!'}, status = status.HTTP_400_BAD_REQUEST)
-
-    try:
-        token = Token.objects.get(key = request.data['key'])
-    except Token.DoesNotExist:
-        return JsonResponse({'detail' : 'key does not exist!'}, status = status.HTTP_400_BAD_REQUEST)
-
-    user = User.objects.get(username = token.user)
-    classM = request.data['classM'] 
-    try:
-        office = Office.objects.get(name = request.data['office'])
-    except Office.DoesNotExist:
-        return JsonResponse({'detail' : 'office does not exits!'}, status = status.HTTP_400_BAD_REQUEST)
-
-    if len(classM) != 2:
-        return JsonResponse({'detail' : 'invalid format!'}, status = status.HTTP_400_BAD_REQUEST)
-
-    grade = classM[0]
-    division = classM[1]
-    try:
-        c = Class.objects.get(division = division, grade = grade, office = office)
-    except Class.DoesNotExist:
-        #if the Class objects doesn't exits, it'll just create it
-        """
-        is_valid should be added.
-        """
-        c = Class.objects.create(division = division, grade = grade, office = office)
-        c.save()
-    
-    try:
-        newUser = GnumaUser.objects.get(user = user, classM = c)
-    except GnumaUser.DoesNotExist:
-        """
-        is_valid should be added.
-        """
-        newUser = GnumaUser.objects.create(user = user, classM = c, adsCreated = 0, level = "Free")
-        newUser.save()
-
-    return JsonResponse({'detail' : 'GnumaUser successfully registered!'}, status = status.HTTP_201_CREATED)
-
-
-
-
-class BookManager(viewsets.GenericViewSet):
-
-    authentication_classes = [TokenAuthentication]
-    safe_actions = ('list', 'retrieve', 'search')
-    lookup_field = 'isbn'
-    queryset = Book.objects.all()
-
-    def get_permissions(self):
-        if self.action in self.safe_actions:
-            permission_classes = [AllowAny]
-        else:
-            permission_classes = [IsAuthenticated] 
-        return [permission() for permission in permission_classes]
-
-
-    '''
-    The following method tries to create a Book instance.
-    If the Book that is going to be created already exists, it just does nothing.
-    '''
-    def create(self, request):
-        if 'isbn' not in request.data or 'title' not in request.data or 'author' not in request.data:
-            return JsonResponse({"detail":"one or more arguments are missing!"}, status = status.HTTP_400_BAD_REQUEST)
-        user = GnumaUser.objects.get(user = request.user)
-        try: 
-            b = Book.objects.get(isbn = request.data['isbn'], classes = user.classM)
-            return JsonResponse({'detail' : 'book created!'}, status = status.HTTP_201_CREATED)
-        except Book.DoesNotExist:
-            try:     
-                b = Book.objects.get(isbn = request.data['isbn'])
-                b.classes.add(user.classM)
-                return JsonResponse({'detail' : 'book created!'}, status = status.HTTP_201_CREATED)
-            except Book.DoesNotExist:
-                b = Book.objects.create(title = request.data['title'], author = request.data['author'], isbn = request.data['isbn'])
-                b.save()
-                b.classes.add(user.classM)
-                return JsonResponse({'detail' : 'book created!'}, status = status.HTTP_201_CREATED)
-  
-    '''
-    The following method lists all the Books instances.
-    '''
-    def list(self, request):
-        serializer = BookSerializer(self.get_queryset(), many = True)
-        return JsonResponse(serializer.data, status = status.HTTP_200_OK, safe = False)
-
-    def retrieve(self, request, *args, **kwargs):
-        book = self.get_object()
-        serializer = BookSerializer(book, many = False)
-        return JsonResponse(serializer.data, status = status.HTTP_200_OK, safe = False)
-    
-'''
--------------------------------------------------------------------------------------------------------------------+
-                                                                                                                   |
-Ad Manager                                                                                                         |
-                                                                                                                   |
--------------------------------------------------------------------------------------------------------------------+
-'''
-
+- Create item.
+- Enqueue item.
+- Retrieve item.
+- Search items.
+"""
 class AdManager(viewsets.GenericViewSet):
     authentication_classes = [TokenAuthentication]
     safe_actions = ('list', 'retrieve','search','geo_search')

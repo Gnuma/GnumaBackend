@@ -5,13 +5,12 @@ from django.urls import path, include
 from rest_framework import routers
 
 # Local imports
-from .views import BookManager, AdManager, init_user
-from .users_profiling.user import whoami
+from .ads.AdManager import AdManager
+from .users_profiling.user import whoami, init_user
 from .search_engine.search_views import getHintsBooks, getHintsOffices
 from .users_profiling.comments.commentsEndpoints import CommentsEndpoints
 
 router = routers.SimpleRouter()
-router.register(r'books', BookManager, basename = "book")
 router.register(r'ads', AdManager)
 router.register(r'comments', CommentsEndpoints)
 

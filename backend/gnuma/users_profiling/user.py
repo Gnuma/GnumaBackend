@@ -10,7 +10,7 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 
 # local imports
-from gnuma.models import GnumaUser
+from gnuma.models import GnumaUser, Office, Class
 from gnuma.serializers import WhoAmISerializer
 from gnuma.doubleCheck.doubleCheckLayer import DoubleCheck
 from gnuma.users_profiling.itemAccess import BaseProfiling
@@ -72,3 +72,49 @@ def mailbox(request):
         return JsonResponse(response, status = status.HTTP_200_OK)
     else:
         return HttpResponse('', status = status.HTTP_204_NO_CONTENT)
+
+
+
+@api_view(['POST',])
+@authentication_classes([TokenAuthentication,])
+def init_user(request):
+    if 'key' not in request.data or 'classM' not in request.data or 'office' not in request.data:
+        return JsonResponse({'detail':'one or more arguments are missing!'}, status = status.HTTP_400_BAD_REQUEST)
+
+    try:
+        token = Token.objects.get(key = request.data['key'])
+    except Token.DoesNotExist:
+        return JsonResponse({'detail' : 'key does not exist!'}, status = status.HTTP_400_BAD_REQUEST)
+
+    user = User.objects.get(username = token.user)
+    classM = request.data['classM'] 
+    try:
+        office = Office.objects.get(name = request.data['office'])
+    except Office.DoesNotExist:
+        return JsonResponse({'detail' : 'office does not exits!'}, status = status.HTTP_400_BAD_REQUEST)
+
+    if len(classM) != 2:
+        return JsonResponse({'detail' : 'invalid format!'}, status = status.HTTP_400_BAD_REQUEST)
+
+    grade = classM[0]
+    division = classM[1]
+    try:
+        c = Class.objects.get(division = division, grade = grade, office = office)
+    except Class.DoesNotExist:
+        #if the Class objects doesn't exits, it'll just create it
+        """
+        is_valid should be added.
+        """
+        c = Class.objects.create(division = division, grade = grade, office = office)
+        c.save()
+    
+    try:
+        newUser = GnumaUser.objects.get(user = user, classM = c)
+    except GnumaUser.DoesNotExist:
+        """
+        is_valid should be added.
+        """
+        newUser = GnumaUser.objects.create(user = user, classM = c, adsCreated = 0, level = "Free")
+        newUser.save()
+
+    return JsonResponse({'detail' : 'GnumaUser successfully registered!'}, status = status.HTTP_201_CREATED)

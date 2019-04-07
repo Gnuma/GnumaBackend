@@ -7,8 +7,8 @@ from django.conf import settings
 from django.core.files.uploadedfile import InMemoryUploadedFile
 
 # Local imports
-from .models import ImageAd
-from .serializers import ImageAdSerializer
+from gnuma.models import ImageAd
+from gnuma.serializers import ImageAdSerializer
 
 # Pillow
 from PIL import Image
