@@ -1,4 +1,4 @@
-from channels.generic.websoscket import WebsocketConsumer
+from channels.generic.websocket import WebsocketConsumer
 
 class BasicChatConsumer(WebsocketConsumer):
     
