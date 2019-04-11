@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'rest_auth.registration',
     'haystack',
+    'channels',
 
     # local
     'gnuma.apps.GnumaConfig',
@@ -89,6 +90,7 @@ TEMPLATES = [
 ]
 
 #WSGI_APPLICATION = 'api.wsgi.application'
+ASGI_APPLICATION = 'gnuma.routing.application'
 
 ACCOUNT_LOGOUT_ON_GET = True
 

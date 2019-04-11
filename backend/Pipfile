@@ -16,6 +16,7 @@ pillow = "*"
 django-haystack = "*"
 whoosh = "*"
 django = "*"
+channels = "*"
 
 [requires]
 python_version = "3.6"

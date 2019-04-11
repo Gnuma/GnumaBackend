@@ -1,7 +1,6 @@
 # Django imports
-from django.contrib.auth.models import User
 from django.http import JsonResponse
-from django.conf import settings
+
 
 # Rest imports
 from rest_framework import viewsets, status

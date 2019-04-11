@@ -5,6 +5,8 @@ from django.contrib.auth.models import User
 
 
 
+
+
 class Office(models.Model):
     name = models.CharField(max_length = 50)
     cap = models.CharField(max_length = 5)
