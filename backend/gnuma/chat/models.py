@@ -24,6 +24,7 @@ class Chat(models.Model):
     MAX 5 CHARACTERS
     '''
     group = models.CharField(unique = True, max_length = 5)
+    '''
     STATUS = {
         (PENDING, 0),
         (PROGRESS, 1),
@@ -31,7 +32,8 @@ class Chat(models.Model):
         (FEEDBACK, 3),
         (COMPLETED, 4)
     }
-    status = models.IntegerField(choices = STATUS, default = PENDING, blank = True)
+    '''
+    status = models.IntegerField(default = 0, blank = True)
 
 class Message(models.Model):
     # add owner
