@@ -14,7 +14,7 @@ class Chat(models.Model):
     For now, CASCADE action is used by the item's foreign key. In future, it will modified to SET NULL in order
     to enable Quipu to issue a notification any time a seller delete an item.
     '''
-    item = models.ForeignKey(Item, on_delete = models.CASCADE, on_update = models.CASCADE)
+    item = models.ForeignKey(Ad, on_delete = models.CASCADE, on_update = models.CASCADE)
     buyer = models.ForeignKey(GnumaUser, on_delete = models.CASCADE, on_update = models.CASCADE)
     created = models.DateTimeField(auto_now = True)
     '''
@@ -34,6 +34,7 @@ class Chat(models.Model):
     status = models.IntegerField(choices = STATUS, default = PENDING, blank = True)
 
 class Message(models.Model):
+    # add owner
     chat = models.ForeignKey(Chat, on_delete = models.CASCADE, on_update = models.CASCADE)
     content = models.CharField(max_length = 255)
     created = models.DateTimeField(auto_now = True)
