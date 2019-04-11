@@ -1,7 +1,12 @@
-from rest_framework import serializers
-from .models import GnumaUser, Book, Office, Class, Ad, Queue_ads, ImageAd
+# django import
 from django.contrib.auth.models import User
-from .customFields import Base64ImageField
+
+# rest imports
+from rest_framework import serializers
+
+# local imports
+from .models import GnumaUser, Book, Office, Class, Ad, Queue_ads, ImageAd, Comment
+from .core.customFields import Base64ImageField
 
 
 
@@ -43,14 +48,36 @@ class BookSerializer(serializers.ModelSerializer):
         fields = ('isbn', 'title', 'author', 'classes')
 
 
+#
+# The following serializer are used by the comments' subsystem.
+#
+class AnswerSerializer(serializers.ModelSerializer):
+    user = GnumaUserSerializer(many = False, read_only = True)
+
+    class Meta:
+        model = Comment
+        fields = '__all__'
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    user = GnumaUserSerializer(many = False, read_only = True)
+    parent_child = AnswerSerializer(many = True, read_only = True) 
+
+    class Meta:
+        model = Comment
+        fields = ('pk', 'user', 'content', 'parent_child', 'created')
+
+
+
 class AdSerializer(serializers.ModelSerializer):
     book = BookSerializer(many = False, read_only = True)
     seller = GnumaUserSerializer(many = False, read_only = True)
     image_ad = serializers.SerializerMethodField()
+    comment_ad = CommentSerializer(many = True, read_only = True)
 
     class Meta:
         model = Ad
-        fields = ('pk', 'description', 'price', 'condition', 'book', 'seller', 'image_ad')
+        fields = ('pk', 'description', 'price', 'condition', 'book', 'seller', 'image_ad', 'comment_ad')
 
     def get_image_ad(self, ad):
         request = self.context.get('request')
@@ -89,9 +116,14 @@ class WhoAmISerializer(serializers.ModelSerializer):
         fields = ('pk' ,'username', 'email', 'gnuma_user')
 
 
-class ImageAdSerializer(serializers.ModelSerializer):
-    image = Base64ImageField(read_only = False, max_length=None, use_url=True)
-
+#
+# The following serializer is used by the AdManager.create endpoint in order to upload an image.
+#
+# Base64ImageField is parser which enable the client upload base64-encoded images. 
+#
+class ImageAdSerializer(serializers.ModelSerializer):   
+    image = Base64ImageField(max_length=None, use_url=True,)
+    
     class Meta:
         model = ImageAd
         fields = '__all__'

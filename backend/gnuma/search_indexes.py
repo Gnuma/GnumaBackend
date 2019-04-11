@@ -1,12 +1,14 @@
-# python imports
+# OS imports
 import datetime
 
 # Haystack
 from haystack import indexes
 
-# local imports
-from .models import Book, Office
+from .models import Office, Book
 
+#
+# search indexes
+#
 class BookIndex(indexes.SearchIndex, indexes.Indexable):
     text = indexes.CharField(document = True, use_template = True)
     author = indexes.CharField(model_attr = 'author')

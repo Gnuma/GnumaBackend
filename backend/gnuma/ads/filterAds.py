@@ -15,8 +15,8 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import FileUploadParser
 
 # Local imports
-from .models import GnumaUser, Book, Office, Class, Ad, Queue_ads
-from .serializers import BookSerializer, AdSerializer
+from gnuma.models import GnumaUser, Book, Office, Class, Ad, Queue_ads
+from gnuma.serializers import BookSerializer, AdSerializer
 from .imageh import ImageHandler
 
 
