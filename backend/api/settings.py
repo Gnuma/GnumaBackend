@@ -90,7 +90,7 @@ TEMPLATES = [
 ]
 
 #WSGI_APPLICATION = 'api.wsgi.application'
-ASGI_APPLICATION = 'gnuma.routing.application'
+ASGI_APPLICATION = 'api.routing.application'
 
 ACCOUNT_LOGOUT_ON_GET = True
 
