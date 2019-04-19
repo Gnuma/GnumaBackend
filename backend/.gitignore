@@ -2,3 +2,4 @@
 #ignore Pipfile.lock
 *.lock
 .vscode
+**/.pytest_cache

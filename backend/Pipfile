@@ -17,6 +17,12 @@ django-haystack = "*"
 whoosh = "*"
 django = "*"
 channels = "*"
+django-mysql = "*"
+pytest-django = "*"
+pytest-asyncio = "*"
+pytest-cov = "*"
+channels-redis = "*"
+factory-boy = "*"
 
 [requires]
 python_version = "3.6"

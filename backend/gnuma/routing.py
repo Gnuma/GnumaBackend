@@ -1,7 +1,7 @@
 from django.conf.urls import url
 
-from .chat.chat import BasicChatConsumer
+from .chat.chat import Chat
 
 websocket_urlpatterns = [
-    url(r'ws/chat/', BasicChatConsumer),
+    url(r'ws/chat/', Chat),
 ]

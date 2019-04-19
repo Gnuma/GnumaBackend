@@ -9,10 +9,12 @@ from .ads.AdManager import AdManager
 from .users_profiling.user import whoami, init_user
 from .search_engine.search_views import getHintsBooks, getHintsOffices
 from .users_profiling.comments.commentsEndpoints import CommentsEndpoints
+from .chat.rest import ChatsHandling
 
 router = routers.SimpleRouter()
 router.register(r'ads', AdManager)
 router.register(r'comments', CommentsEndpoints)
+router.register(r'chat', ChatsHandling)
 
 
 

@@ -1,9 +1,9 @@
-from channels.auth import AuthMiddlewareStack
+from gnuma.core.authToken import TokenAuthMiddlewareStack
 from channels.routing import ProtocolTypeRouter, URLRouter
 import gnuma.routing
 
 application = ProtocolTypeRouter({
-    'websocket': AuthMiddlewareStack(
+    'websocket': TokenAuthMiddlewareStack(
         URLRouter(
             gnuma.routing.websocket_urlpatterns
         )

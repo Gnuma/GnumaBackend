@@ -62,10 +62,11 @@ class AnswerSerializer(serializers.ModelSerializer):
 class CommentSerializer(serializers.ModelSerializer):
     user = GnumaUserSerializer(many = False, read_only = True)
     parent_child = AnswerSerializer(many = True, read_only = True) 
+    parent = AnswerSerializer(many = False, read_only = True)
 
     class Meta:
         model = Comment
-        fields = ('pk', 'user', 'content', 'parent_child', 'created')
+        fields = ('pk', 'user', 'content', 'parent_child', 'created', 'parent')
 
 
 

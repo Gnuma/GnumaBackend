@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'rest_auth.registration',
     'haystack',
     'channels',
+    'django_mysql',
 
     # local
     'gnuma.apps.GnumaConfig',
@@ -91,8 +92,14 @@ TEMPLATES = [
 
 #WSGI_APPLICATION = 'api.wsgi.application'
 ASGI_APPLICATION = 'api.routing.application'
-
-ACCOUNT_LOGOUT_ON_GET = True
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
+}
 
 # Database
 # https://docs.djangoproject.com/en/2.1/ref/settings/#databases

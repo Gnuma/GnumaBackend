@@ -3,10 +3,6 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
-
-
-
-
 class Office(models.Model):
     name = models.CharField(max_length = 50)
     cap = models.CharField(max_length = 5)
@@ -66,7 +62,7 @@ class Book(models.Model):
 
 class GnumaUser(models.Model):
     user = models.OneToOneField(User, on_delete = models.CASCADE, primary_key = True, related_name = 'gnuma_user')
-    classM = models.ForeignKey(Class, on_delete = models.CASCADE) 
+    classM = models.ForeignKey(Class, on_delete = models.CASCADE, null = True, blank = True) 
     FREE = 'Free'
     PRO = 'Pro'
     BUSINESS = 'Business'

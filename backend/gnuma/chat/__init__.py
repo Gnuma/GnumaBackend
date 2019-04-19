@@ -9,6 +9,3 @@
 # notifications.py: contains all the consumers used by the notification system.
 # chat.py: contains all the consumers used by the chat system.
 #
-from .models import Chat,Message
-
-
