@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from rest_framework import serializers
 
 # local imports
-from .models import Chat, Message
+from .models import Chat, Message, Notification
 from gnuma.models import GnumaUser, Ad, Comment
 from gnuma.serializers import AdSerializer, AnswerSerializer, CommentSerializer
 
@@ -30,13 +30,6 @@ class ChatGnumaUserSerializer(serializers.ModelSerializer):
         model = GnumaUser
         fields = ('pk' , 'user')
 
-class MessageSerializer(serializers.ModelSerializer):
-    owner = ChatUserSerializer(many = False, read_only = False)
-
-    class Meta:
-        model = Message
-        fields = '__all__'
-
 class ChatSerializer(serializers.ModelSerializer):
     buyer = ChatGnumaUserSerializer(read_only = True, many = False)
     item = NotificationAdSerializer(many = False, read_only = True)
@@ -51,7 +44,7 @@ class ChatSerializer(serializers.ModelSerializer):
         current_page = self.context.get('page', 1) * self.PAGE_SIZE
         messages = Message.objects.filter(chat = chat).order_by('-created')[:current_page]
 
-        return MessageSerializer(messages, many = True).data
+        return NotificationMessageSerializer(messages, many = True).data # does it work?
 
 #
 # Notification serializer for chats
@@ -59,7 +52,7 @@ class ChatSerializer(serializers.ModelSerializer):
 class NotificationChatSerializer(ChatSerializer):
     class Meta:
         model = Chat
-        fields = ('pk', 'item', 'buyer', 'created')
+        fields = ('_id', 'item', 'buyer', 'createdAt')
 
 #
 # Notification serializer for answers and comments
@@ -69,7 +62,7 @@ class NotificationCommentSerializer(CommentSerializer):
 
     class Meta:
         model = Comment
-        fields = ('pk', 'item', 'user', 'created', 'content')
+        fields = ('pk', 'item', 'createdAt')
 
 
 class NotificationAnswerSerializer(AnswerSerializer):
@@ -77,5 +70,18 @@ class NotificationAnswerSerializer(AnswerSerializer):
 
     class Meta:
         model = Comment
-        fields = ('pk', 'parent', 'user', 'content')
+        fields = ('pk', 'parent', 'createdAt')
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = '__all__'
+
+class NotificationMessageSerializer(serializers.ModelSerializer):
+    owner = ChatGnumaUserSerializer(many = False, read_only = True)
+    chat = NotificationChatSerializer(many = False, read_only = True)
+
+    class Meta:
+        model = Message
+        fields = '__all__'
 

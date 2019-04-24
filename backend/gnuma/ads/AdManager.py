@@ -22,6 +22,7 @@ from gnuma.serializers import BookSerializer, AdSerializer, QueueAdsSerializer
 from .imageh import ImageHandler
 from gnuma.doubleCheck.doubleCheckLayer import DoubleCheck
 from gnuma.users_profiling.itemAccess import BaseProfiling
+from gnuma.chat.notification import NotificationHandler
 
 """
 The following class contains all the endpoint that are meant to handle the following actions:
@@ -199,6 +200,12 @@ class AdManager(viewsets.GenericViewSet):
                 BaseProfiling.createAccess(**instance)
 
         serializer = self.get_serializer_class()(ad, many = False, context = {'request': request})
+        #
+        # Delete all the notification related to this user and this item.
+        #
+        if request.user != AnonymousUser:
+            if not NotificationHandler.delete(item = ad, user = request.user):
+                print('ERROR ON RETRIEVE: %d - THE NOTIFICATION HAS NOT BEEN DELETED FROM THE DATABASE' & ad.pk)
         return JsonResponse(serializer.data, status = status.HTTP_200_OK, safe = False)
 
 

@@ -10,6 +10,7 @@ from channels.generic.websocket import WebsocketConsumer
 
 # local imports
 from .models import Client
+from .notification import NotificationHandler
 
 class Chat(WebsocketConsumer):
     '''
@@ -27,6 +28,19 @@ class Chat(WebsocketConsumer):
                 print('ERROR OCCURED DURING THE CONNECTION WITH %s : %s' % (self.scope['user'], str(e)))
                 self.close()
             self.accept()
+        #
+        # send pending notifications back to the user.
+        # must be tested
+        #
+        notifications = NotificationHandler.retrieve(user = self.scope['user'])
+        if not notifications:
+            #
+            # Must be changed
+            #
+            self.send(text_data = 'SERVER ERROR')
+        else:
+            self.send(text_data = json.dumps(notifications))
+
 
     '''
     This method closes the connection with the client.

@@ -13,6 +13,7 @@ from gnuma.models import Comment, Ad, Report, GnumaUser
 from gnuma.chat.models import Client
 from gnuma.serializers import CommentSerializer, AdSerializer
 from gnuma.chat.serializers import NotificationAnswerSerializer, NotificationCommentSerializer
+from gnuma.chat.notification import NotificationHandler
 
 class CommentHandler(object):
     
@@ -35,7 +36,7 @@ class CommentHandler(object):
         except Ad.DoesNotExist:
             raise
         
-        instance = {'content' : content, 'item' : item_pk, 'user' : user}
+        instance = {'text' : content, 'item' : item_pk, 'user' : user}
         comment = CommentSerializer(data = instance)
 
         try:
@@ -69,6 +70,14 @@ class CommentHandler(object):
                 #
                 # To be implemented
                 pass
+        #
+        # Save the notification in the db.
+        #
+        if not NotificationHandler.save(destination = item.seller.user.pk, data = data, item = item_pk):
+            #
+            # DEBUG MODE
+            #
+            print('ERROR ON COMMENT: %d - THE NOTIFICATION HAS NOT BEEN STORED INTO THE DATABASE' % item_pk)
 
         return newComment
         
@@ -98,7 +107,7 @@ class CommentHandler(object):
         if comment.user != user and comment.item.seller != user:
             raise Exception
 
-        instance = {'content' : content, 'parent' : comment_pk, 'user' : user}
+        instance = {'text' : content, 'parent' : comment_pk, 'user' : user}
         answer = CommentSerializer(data = instance)
 
         try:
@@ -133,6 +142,14 @@ class CommentHandler(object):
             #
             # To be implemented
             pass
+        #
+        # Save the notification in the db.
+        #
+        if not NotificationHandler.save(destination = destination.pk, data = data, item = comment.item.pk):
+            #
+            # DEBUG MODE
+            #
+            print('ERROR ON COMMENT: %d - THE NOTIFICATION HAS NOT BEEN STORED INTO THE DATABASE' % comment.item.pk)           
 
         return newAnswer
 
@@ -162,7 +179,7 @@ class CommentHandler(object):
         except Comment.DoesNotExist:
             raise
         
-        instance = {'content' : content}
+        instance = {'text' : content}
         check = CommentSerializer(data = instance)
 
         try:

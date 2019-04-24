@@ -45,7 +45,7 @@ class BookSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Book
-        fields = ('isbn', 'title', 'author', 'classes')
+        fields = ('isbn', 'title', 'author')
 
 
 #
@@ -66,7 +66,7 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = ('pk', 'user', 'content', 'parent_child', 'created', 'parent')
+        fields = ('pk', 'user', 'text', 'parent_child', 'createdAt', 'parent')
 
 
 

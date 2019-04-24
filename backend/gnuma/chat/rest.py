@@ -18,7 +18,7 @@ from asgiref.sync import async_to_sync
 
 # local imports
 from .models import Chat, Message, Client
-from .serializers import ChatSerializer, MessageSerializer, NotificationChatSerializer
+from .serializers import ChatSerializer, NotificationMessageSerializer, NotificationChatSerializer
 from gnuma.models import Ad, GnumaUser
 
 '''
@@ -93,9 +93,7 @@ class ChatsHandling(viewsets.GenericViewSet):
         except Client.DoesNotExist:
             #
             # The user is not online.
-            # Just insert the notification into the database.
             #
-            # To be implemented
             pass
         #
         # Return chat informations
@@ -109,7 +107,8 @@ class ChatsHandling(viewsets.GenericViewSet):
 
     - chatID (chat)
     '''
-    def acceptChat(self, request):
+    @action(detail = False, methods = ['post'])
+    def accept(self, request):
         if 'chat' not in request.data:
             return JsonResponse({'detail' : 'one or more arguments are missing!'}, status = status.HTTP_400_BAD_REQUEST)
         
@@ -132,7 +131,8 @@ class ChatsHandling(viewsets.GenericViewSet):
     
     - chatID (chat)
     '''
-    def rejectChat(self, request):
+    @action(detail = False, methods = ['post'])
+    def reject(self, request):
         if 'chat' not in request.data:
             return JsonResponse({'detail' : 'one or more arguments are missing!'}, status = status.HTTP_400_BAD_REQUEST)
         
@@ -141,7 +141,11 @@ class ChatsHandling(viewsets.GenericViewSet):
         except Chat.DoesNotExist:
             return JsonResponse({'detail' : 'the chat does not exist!'}, status = status.HTTP_400_BAD_REQUEST)
         
-        chat.delete()
+        #
+        # rejected not delete.
+        #
+        chat.status = Chat.REJECTED
+        chat.save()
         #
         # A notification must be sent to the buyer.
         #
@@ -163,7 +167,7 @@ It contains the following methods:
 - retrieveChat: retrieves messages from the given chat.
 - sendMessage: pushes a message into the given chat.
 '''
-class ChatOperations(viewsets.GenericViewSet):
+class ChatsOperations(viewsets.GenericViewSet):
     queryset = Chat.objects.all()
     authentication_classes = [TokenAuthentication, ]
     permission_classes = [IsAuthenticated, ]
@@ -215,7 +219,7 @@ class ChatOperations(viewsets.GenericViewSet):
     - chatID (chat)
     - content
     '''
-    def sendMessage(self, request):
+    def create(self, request):
         if 'chat' not in request.data or 'content' not in request.data:
             return JsonResponse({'detail' : 'one or more arguments are missing!'}, status = status.HTTP_400_BAD_REQUEST)
 
@@ -224,18 +228,19 @@ class ChatOperations(viewsets.GenericViewSet):
         except Chat.DoesNotExist:
             return JsonResponse({'detail' : 'the chat does not exist!'}, status = status.HTTP_400_BAD_REQUEST)
 
-        if chat.item.seller != request.user and chat.buyer != request.user:
-            return JsonResponse({'detail' : 'you cannot send messages in this chat!'}, status = status.status.HTTP_401_UNAUTHORIZED)
+        if chat.item.seller.user != request.user and chat.buyer.user != request.user:
+            return JsonResponse({'detail' : 'you cannot send messages in this chat!'}, status = status.HTTP_401_UNAUTHORIZED)
 
-        instance = {'chat' : chat, 'owner' : request.user, 'content' : request.data['content']}
-        serializer = MessageSerializer(data = instance)
+        instance = {'chat' : chat, 'owner' : GnumaUser.objects.get(user = request.user), 'text' : request.data['content'], 'is_read' : False}
+        serializer = NotificationMessageSerializer(data = instance)
         try:
             serializer.is_valid(raise_exception = True)
         except Exception as e:
             print('SEND MESSAGE - ERROR DETECTED : %s' % str(e))
             return JsonResponse({'detail' : 'data entered is not valid'}, status = status.HTTP_400_BAD_REQUEST)
         
-        serializer.save()
+        message = Message.objects.create(**instance)
+        message.save()
         #
         # Notification must be sent to the other user.
         #
@@ -244,31 +249,19 @@ class ChatOperations(viewsets.GenericViewSet):
             #
             # I'm the seller
             #
-            buyer = chat.buyer
-            try:
-                client = Client.objects.get(user = buyer)
-                channel_name = client.channel_name
-                #
-                # Let's create our notification
-                #
-                channel_layer = get_channel_layer()
-                notification_content = {}
-                notification_content['type'] = "NewMessage"
-                notification_content['numberOfMessages'] = 1
-                notification_content['messages'] = []
-                notification_content['messages'].append(serializer.data.__dict__)
-                notification_content['chatID'] = chat.pk
-                async_to_sync(channel_layer.send(channel_name, {"type" : "notification.send", "content" : notification_content}))
-            except Client.DoesNotExist:
-                #
-                # Save the notification
-                #
-                return 1
+            destination = chat.buyer.user
         else:
-            #
-            # I'm the buyer
-            #
-            return 1
-        return JsonResponse({'detail' : 'message sent!'}, status = status.HTTP_200_OK)
+            destination = item.seller.user
+        data = {}
+        data['type'] = "NewMessage"
+        data['chatID'] = chat.pk
+        data['message'] = NotificationMessageSerializer(message, many = False).data
+        try:
+            client = Client.objects.get(user = destination)
+            channel_name = client.channel_name
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.send)(channel_name, {"type" : "notification.send", "content" : data})
+        except Client.DoesNotExist:
+            pass
 
-
+        return JsonResponse({'pk' : message.pk}, status = status.HTTP_201_CREATED)

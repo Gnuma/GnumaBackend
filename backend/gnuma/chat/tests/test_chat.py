@@ -5,6 +5,7 @@ from rest_framework.test import APIClient
 from channels.testing import WebsocketCommunicator, HttpCommunicator
 from api.routing import application
 from channels.db import database_sync_to_async
+from gnuma.chat.models import Notification
 from gnuma.chat.chat import Chat
 from gnuma.chat.tests.factories import UserFactory, TokenFactory, ChatFactory, ItemFactory, GnumaUserFactory
 
@@ -31,7 +32,19 @@ def get_item(seller):
     item = ItemFactory(seller = GnumaUserFactory(user = seller))
     return item
 
+@sync_to_async
+def callAPI(path, body, token = None):
+    c = APIClient()
+    if token:
+        c.credentials(HTTP_AUTHORIZATION = 'Token ' + token)
+    response = c.post(path, json.dumps(body), content_type='application/json')
+    return response
 
+@sync_to_async
+def dbDump(model):
+    print(repr(model.objects.all()))
+    return 
+'''
 @pytest.mark.asyncio
 @pytest.mark.django_db(transaction = True)
 async def test_connection():
@@ -42,17 +55,10 @@ async def test_connection():
     assert connected
     await communicator.disconnect()
 
-@sync_to_async
-def callAPI(path, body, token = None):
-    c = APIClient()
-    if token:
-        c.credentials(HTTP_AUTHORIZATION = 'Token ' + token)
-    response = c.post(path, json.dumps(body), content_type='application/json')
-    return response
-
 @pytest.mark.asyncio
 @pytest.mark.django_db(transaction = True)
-async def test_newMessage():
+async def test_newComment():
+    print('ENTERING IN NEWCOMMENT')
     #
     # Create the context to make this test work
     #
@@ -90,11 +96,14 @@ async def test_newMessage():
     # Disconnecting the seller
     #
     await communicator.disconnect()
+    print('SHOWING DATABASE')
+    await dbDump(Notification)
 
 
 @pytest.mark.asyncio
 @pytest.mark.django_db(transaction = True)
 async def test_newAnswer():
+    print('ENTERING IN NEWANSWER')
     #
     # Create the context to make this test work
     #
@@ -144,11 +153,14 @@ async def test_newAnswer():
     # Disconnecting the buyer
     #
     await communicator.disconnect()
+    print('SHOWING DATABASE')
+    await dbDump(Notification)
 
 
 @pytest.mark.asyncio
 @pytest.mark.django_db(transaction = True)
 async def test_newChat():
+    print('ENTERING NEWCHAT')
     #
     # Create the context to make this test work
     #
@@ -183,10 +195,47 @@ async def test_newChat():
     # Disconnecting the seller
     #
     await communicator.disconnect()
-
+'''
+'''
 @pytest.mark.asyncio
 @pytest.mark.django_db(transaction = True)
 async def test_newMessage():
+    print('ENTERING NEWMESSAGE')
+    #
+    # Create the context to make this test work
+    #
+    seller = await get_user("seller")
+    buyer = await get_user("buyer")
+    item = await get_item(seller)
+    chat = await get_chat(buyer, item)
+    token_seller = await get_token(seller)
+    token_buyer = await get_token(buyer)
+    #
+    # The seller gets connected to the websocket.
+    #
+    communicator = WebsocketCommunicator(application, r'ws/chat/?token={}'.format(token_seller))
+    connected, _ = await communicator.connect()
+    assert connected
+    initial_data = await communicator.receive_from()
+    #
+    # The buyer send a message over the chat we've just created.
+    #
+    body = {}
+    body['chat'] = chat.pk
+    body['content'] = 'Ciao'
+    response = await callAPI('/gnuma/v1/chat/operations/', body, token_buyer)
+    #
+    # The endpoint should return 201.
+    #
+    assert response.status_code == 201
+    response = await communicator.receive_from()
+    print(response)
+    assert len(response) > 0
+    await communicator.disconnect()
+'''
+@pytest.mark.asyncio
+@pytest.mark.django_db(transaction = True)
+async def test_initialRetrieve():
     #
     # Create the context to make this test work
     #
@@ -195,3 +244,22 @@ async def test_newMessage():
     item = await get_item(seller)
     token_seller = await get_token(seller)
     token_buyer = await get_token(buyer)
+    #
+    # The buyer creates a new comment.
+    #
+    body = {}
+    body['item'] = item.pk
+    body['content'] = "Ciao, hai per caso pure la seconda edizione?"
+    body['type'] = "comment"
+    response = await callAPI('/gnuma/v1/comments/', body, token_buyer)
+    assert response.status_code == 201
+    #
+    # The seller gets connected to the web socket.
+    #
+    communicator = WebsocketCommunicator(application, r'ws/chat/?token={}'.format(token_seller))
+    connected, _ = await communicator.connect()
+    assert connected
+    initial_data = await communicator.receive_from()
+    print(initial_data)
+    assert len(initial_data) > 0
+    await communicator.disconnect()

@@ -112,19 +112,19 @@ class ImageAd(models.Model):
 # V2 models
 #
 class Comment(models.Model):
-    created = models.DateTimeField(auto_now_add = True)
+    createdAt = models.DateTimeField(auto_now_add = True)
     updated = models.DateTimeField(auto_now = True)
     is_edited = models.BooleanField(default = False)
-    content = models.CharField(max_length = 200)
+    text = models.CharField(max_length = 200)
     item = models.ForeignKey(Ad, on_delete = models.CASCADE, related_name = 'comment_ad', blank = True, null = True)
     parent = models.ForeignKey("self", on_delete = models.CASCADE, related_name = 'parent_child', blank = True, null = True)
     user = models.ForeignKey(GnumaUser, on_delete = models.CASCADE)
 
     def __str__(self):
         if self.item == None:
-            return self.parent.__str__()+" "+self.content
+            return self.parent.__str__()+" "+self.text
         else:
-            return self.item.__str__()+" "+self.content
+            return self.item.__str__()+" "+self.text
 
 
 class Report(models.Model):
