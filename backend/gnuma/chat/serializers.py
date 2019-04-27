@@ -80,7 +80,7 @@ class NotificationSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class NotificationMessageSerializer(serializers.ModelSerializer):
-    owner = ChatGnumaUserSerializer(many = False, read_only = True)
+    user = ChatGnumaUserSerializer(many = False, read_only = True)
     chat = NotificationChatSerializer(many = False, read_only = True)
 
     class Meta:
@@ -91,10 +91,10 @@ class NotificationMessageSerializer(serializers.ModelSerializer):
 The following serializer are going to be used in the 'retrieveChat' endpoint.
 '''
 class RetrieveMessageSerializer(serializers.ModelSerializer):
-    owner = ChatGnumaUserSerializer(many = False, read_only = True)
+    user = serializers.RelatedField(source = 'user__user__username', many = False, read_only = True)
     class Meta:
         model = Message
-        fields = ('_id', 'createdAt', 'is_read', 'text', 'owner')
+        fields = ('_id', 'createdAt', 'is_read', 'text', 'user')
 
 class RetrieveChatSerializer(serializers.ModelSerializer):
     buyer = ChatGnumaUserSerializer(many = False, read_only = True)

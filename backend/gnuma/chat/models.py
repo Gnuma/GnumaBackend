@@ -54,7 +54,7 @@ class Chat(models.Model):
 
 class Message(models.Model):
     _id = models.AutoField(primary_key = True)
-    owner = models.ForeignKey(GnumaUser, on_delete = models.CASCADE)
+    user = models.ForeignKey(GnumaUser, on_delete = models.CASCADE)
     chat = models.ForeignKey(Chat, on_delete = models.CASCADE, to_field = '_id' ,related_name = 'messages')
     text = models.CharField(max_length = 255)
     is_read = models.BooleanField()

@@ -228,7 +228,7 @@ class ChatsOperations(viewsets.GenericViewSet):
         if chat.item.seller.user != request.user and chat.buyer.user != request.user:
             return JsonResponse({'detail' : 'you cannot send messages in this chat!'}, status = status.HTTP_401_UNAUTHORIZED)
 
-        instance = {'chat' : chat, 'owner' : GnumaUser.objects.get(user = request.user), 'text' : request.data['content'], 'is_read' : False}
+        instance = {'chat' : chat, 'user' : GnumaUser.objects.get(user = request.user), 'text' : request.data['content'], 'is_read' : False}
         serializer = NotificationMessageSerializer(data = instance)
         try:
             serializer.is_valid(raise_exception = True)
