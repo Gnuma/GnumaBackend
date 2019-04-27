@@ -3,6 +3,7 @@ import uuid # deprecated
 
 # Django imports
 from django.http import JsonResponse
+from django.db.models import Max
 
 # Rest imports
 from rest_framework import viewsets, status
@@ -18,7 +19,7 @@ from asgiref.sync import async_to_sync
 
 # local imports
 from .models import Chat, Message, Client
-from .serializers import ChatSerializer, NotificationMessageSerializer, NotificationChatSerializer
+from .serializers import ChatSerializer, NotificationMessageSerializer, NotificationChatSerializer, RetrieveAdSerializer
 from gnuma.models import Ad, GnumaUser
 
 '''
@@ -171,46 +172,42 @@ class ChatsOperations(viewsets.GenericViewSet):
     queryset = Chat.objects.all()
     authentication_classes = [TokenAuthentication, ]
     permission_classes = [IsAuthenticated, ]
-
     '''
-    This endpoint must be called every time an user is going to enter a chat.
-    All the messages are going to have the flag 'is_read' set to true.
-    Also, it returns the chat's messages.
-    
-    Parameters:
-
-    - chatID (chat)
-    - page number (page)
-
-
+    This endpoint is called every time the user turns from inactive to active.
+    It must return all the user's chats splitted in 'sales' and 'shoping'.
+    Also, each chat must return together with its last 50 messages.
     '''
-    def retrieveChat(self, request):
-        if 'chat' not in request.data or 'page' not in request.data:
-            return JsonResponse({'detail' : 'one or more arguments are missing!'}, status = status.HTTP_400_BAD_REQUEST)
-
-        if not str.isnumeric(request.data['page']):
-            return JsonResponse({'detail' : 'page number must be a number!'}, status = status.HTTP_400_BAD_REQUEST)
-
-        try:
-            chat = Chat.objects.get(pk = request.data['chat'])
-        except Chat.DoesNotExist:
-            return JsonResponse({'detail' : 'the chat does not exist!'}, status = status.HTTP_400_BAD_REQUEST)
-        
-        messages = Message.objects.filter(chat = chat, is_read = False).exclude(owner = request.data['user'])     
-        
-        for m in messages:
-            m.is_read = True
-            m.save()
-
-        if 'live' in request.data:
-            return JsonResponse({'detail' : 'chat updated'}, status = status.HTTP_200_OK)
-
+    def list(self, request):
+        response = {}
         #
-        # Retrieve chat's messages
-        #       
-    
-        return JsonResponse(ChatSerializer(chat, many = False, context = {'page' : request.data['page']}), status = status.HTTP_200_OK, safe = False)
-
+        # Sales
+        #
+        response['sales'] = []
+        null_ads = Ad.objects.filter(chats__isnull = True, seller__user = request.user).order_by('-createdAt')
+        chat_ads = Ad.objects.annotate(max = Max('chats__messages__createdAt')).filter(chats__isnull = False, seller__user = request.user).order_by('pk').order_by('-max')
+        print('len1 : %d  len2 : %d' % (len(null_ads), len(chat_ads)))
+        for ad in chat_ads:
+            response['sales'].append(RetrieveAdSerializer(ad, many = False).data)
+        for ad in null_ads:
+            response['sales'].append(RetrieveAdSerializer(ad, many = False).data)
+        #
+        # Shopping
+        #
+        response['shopping'] = []
+        chat_ads = Ad.objects.annotate(max = Max('chats__messages__createdAt')).filter(chats__isnull = False, chats__buyer__user = request.user).order_by('pk').order_by('-max')
+        ordered_subjects = []
+        for ad in chat_ads:
+            if ad.book.subject not in ordered_subjects:
+                ordered_subjects.append(ad.book.subject)
+        for subject in ordered_subjects:
+            data = {}
+            data['subject'] = {'_id' : subject._id, 'title' : subject.title}
+            data['chats'] = []
+            ads = Ad.objects.annotate(max = Max('chats__messages__createdAt')).filter(chats__isnull = False, chats__buyer__user = request.user, book__subject = subject).order_by('pk').order_by('-max')
+            for ad in ads:
+                data['chats'].append(RetrieveAdSerializer(ad, many = False).data)
+            response['shopping'].append(data)
+        return JsonResponse(response, status = status.HTTP_200_OK, safe = False)
     '''
     This endpoint is used by the user in order to push a message into a chat.
 

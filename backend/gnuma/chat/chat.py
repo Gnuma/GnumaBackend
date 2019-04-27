@@ -28,18 +28,18 @@ class Chat(WebsocketConsumer):
                 print('ERROR OCCURED DURING THE CONNECTION WITH %s : %s' % (self.scope['user'], str(e)))
                 self.close()
             self.accept()
-        #
-        # send pending notifications back to the user.
-        # must be tested
-        #
-        notifications = NotificationHandler.retrieve(user = self.scope['user'])
-        if not notifications:
             #
-            # Must be changed
+            # send pending notifications back to the user.
+            # must be tested
             #
-            self.send(text_data = 'SERVER ERROR')
-        else:
-            self.send(text_data = json.dumps(notifications))
+            notifications = NotificationHandler.retrieve(user = self.scope['user'])
+            if not notifications:
+                #
+                # Must be changed
+                #
+                self.send(text_data = 'SERVER ERROR')
+            else:
+                self.send(text_data = json.dumps(notifications))
 
 
     '''

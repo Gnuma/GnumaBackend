@@ -41,7 +41,6 @@ class GnumaUserSerializer(serializers.ModelSerializer):
 
 
 class BookSerializer(serializers.ModelSerializer):
-    classes = ClassSerializer(many = True, read_only = True) 
 
     class Meta:
         model = Book

@@ -49,12 +49,19 @@ class Class(models.Model):
     def __str__(self):
         return self.grade+" "+self.division+" "+self.office.name
 
+class Subject(models.Model):
+    _id = models.AutoField(primary_key = True)
+    title = models.CharField(max_length = 20)
+
+    def __str__(self):
+        return self.title
 
 class Book(models.Model):
     title = models.CharField(max_length = 50)
     author = models.CharField(max_length = 50, default = 'Sconosciuto', blank = True)
     isbn = models.CharField(max_length = 13, primary_key = True)
     classes = models.ManyToManyField(Class)
+    subject = models.ForeignKey(Subject, on_delete = models.CASCADE, null = True)
 
     def __str__(self):
         return self.title
@@ -84,6 +91,7 @@ class Ad(models.Model):
     book = models.ForeignKey(Book, on_delete = models.CASCADE, blank = True, null = True)
     seller = models.ForeignKey(GnumaUser, on_delete = models.CASCADE)
     enabled = models.BooleanField(default = True)
+    createdAt = models.DateTimeField(auto_now_add = True)
     def __str__(self):
         return GnumaUser.__str__(self.seller)+":"+self.description
 

@@ -26,7 +26,7 @@ class Chat(models.Model):
     to enable Quipu to issue a notification anytime a seller delete an item.
     '''
     _id = models.AutoField(primary_key = True)
-    item = models.ForeignKey(Ad, on_delete = models.CASCADE)
+    item = models.ForeignKey(Ad, on_delete = models.CASCADE, related_name = 'chats')
 
     #
     # GnumaUser is not useful at all. 
@@ -55,7 +55,7 @@ class Chat(models.Model):
 class Message(models.Model):
     _id = models.AutoField(primary_key = True)
     owner = models.ForeignKey(GnumaUser, on_delete = models.CASCADE)
-    chat = models.ForeignKey(Chat, on_delete = models.CASCADE, to_field = '_id' ,related_name = 'message_chat')
+    chat = models.ForeignKey(Chat, on_delete = models.CASCADE, to_field = '_id' ,related_name = 'messages')
     text = models.CharField(max_length = 255)
     is_read = models.BooleanField()
     createdAt = models.DateTimeField(auto_now_add = True)

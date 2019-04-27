@@ -1,5 +1,6 @@
 # django imports
 from django.contrib.auth.models import User
+from django.db.models import Max
 
 # rest imports
 from rest_framework import serializers
@@ -7,7 +8,7 @@ from rest_framework import serializers
 # local imports
 from .models import Chat, Message, Notification
 from gnuma.models import GnumaUser, Ad, Comment
-from gnuma.serializers import AdSerializer, AnswerSerializer, CommentSerializer
+from gnuma.serializers import AdSerializer, AnswerSerializer, CommentSerializer, BookSerializer
 
 #
 # Notification serializers for ads
@@ -85,3 +86,42 @@ class NotificationMessageSerializer(serializers.ModelSerializer):
         model = Message
         fields = '__all__'
 
+'''
+The following serializer are going to be used in the 'retrieveChat' endpoint.
+'''
+class RetrieveMessageSerializer(serializers.ModelSerializer):
+    owner = ChatGnumaUserSerializer(many = False, read_only = True)
+    class Meta:
+        model = Message
+        fields = ('_id', 'createdAt', 'is_read', 'text', 'owner')
+
+class RetrieveChatSerializer(serializers.ModelSerializer):
+    buyer = ChatGnumaUserSerializer(many = False, read_only = True)
+    messages = serializers.SerializerMethodField()
+    PAGE_SIZE = 50
+    class Meta:
+        model = Chat
+        fields = ('_id', 'buyer', 'status', 'messages')
+    
+    def get_messages(self, chat):
+        messages = Message.objects.filter(chat = chat).order_by('createdAt')[:(self.PAGE_SIZE * self.context.get('page', 1))]
+        return RetrieveMessageSerializer(messages, many = True).data
+
+class RetrieveAdSerializer(serializers.ModelSerializer):
+    _id = serializers.IntegerField(source = 'pk')
+    book = BookSerializer(many = False, read_only = True)
+    chats = serializers.SerializerMethodField()
+    seller = ChatGnumaUserSerializer(many = False, read_only = True)
+    class Meta:
+        model = Ad
+        fields = ('_id', 'seller','book', 'price', 'chats')
+
+    #
+    # get sales chats. Order items by the last message.
+    #
+    def get_chats(self, ad):
+        chats = []
+        seller_chats = Chat.objects.annotate(max = Max('messages__createdAt')).filter(item = ad).order_by('pk').order_by('-max')
+        for chat in seller_chats:
+            chats.append(RetrieveChatSerializer(chat, many = False).data)
+        return chats
