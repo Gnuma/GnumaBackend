@@ -186,9 +186,9 @@ class ChatsOperations(viewsets.GenericViewSet):
         null_ads = Ad.objects.filter(chats__isnull = True, seller__user = request.user).order_by('-createdAt')
         chat_ads = Ad.objects.annotate(max = Max('chats__messages__createdAt')).filter(chats__isnull = False, seller__user = request.user).order_by('pk').order_by('-max')
         for ad in chat_ads:
-            response['sales'].append(RetrieveAdSerializer(ad, many = False).data)
+            response['sales'].append(RetrieveAdSerializer(ad, many = False, context = {'request' : request}).data)
         for ad in null_ads:
-            response['sales'].append(RetrieveAdSerializer(ad, many = False).data)
+            response['sales'].append(RetrieveAdSerializer(ad, many = False, context = {'request' : request}).data)
         #
         # Shopping
         #
@@ -204,7 +204,7 @@ class ChatsOperations(viewsets.GenericViewSet):
             data['items'] = []
             ads = Ad.objects.annotate(max = Max('chats__messages__createdAt')).filter(chats__isnull = False, chats__buyer__user = request.user, book__subject = subject).order_by('pk').order_by('-max')
             for ad in ads:
-                data['items'].append(RetrieveAdSerializer(ad, many = False, context = {'user' : request.user}).data)
+                data['items'].append(RetrieveAdSerializer(ad, many = False, context = {'user' : request.user, 'request' : request}).data)
             response['shopping'].append(data)
         return JsonResponse(response, status = status.HTTP_200_OK, safe = False)
     '''

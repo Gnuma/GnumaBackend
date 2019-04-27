@@ -7,7 +7,7 @@ from rest_framework import serializers
 
 # local imports
 from .models import Chat, Message, Notification
-from gnuma.models import GnumaUser, Ad, Comment
+from gnuma.models import GnumaUser, Ad, Comment, ImageAd
 from gnuma.serializers import AdSerializer, AnswerSerializer, CommentSerializer, BookSerializer
 
 #
@@ -113,9 +113,10 @@ class RetrieveAdSerializer(serializers.ModelSerializer):
     book = BookSerializer(many = False, read_only = True)
     chats = serializers.SerializerMethodField()
     seller = ChatGnumaUserSerializer(many = False, read_only = True)
+    image_ad = serializers.SerializerMethodField()
     class Meta:
         model = Ad
-        fields = ('_id', 'seller','book', 'price', 'chats')
+        fields = ('_id', 'seller','book', 'price', 'chats', 'condition', 'image_ad')
 
     #
     # get sales chats. Order items by the last message.
@@ -131,3 +132,13 @@ class RetrieveAdSerializer(serializers.ModelSerializer):
             user = self.context.get('user')
             chat = Chat.objects.get(buyer__user = user, item = ad)
             return RetrieveChatSerializer(chat, many = False).data
+
+    def get_image_ad(self, ad):
+        request = self.context.get('request')
+        images = ImageAd.objects.filter(ad = ad)
+        serialized_field = []
+
+        for image in images:
+            serialized_field.append(request.build_absolute_uri(image.image.url))
+        
+        return serialized_field
