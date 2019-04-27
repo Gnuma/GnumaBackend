@@ -202,7 +202,7 @@ class ChatsOperations(viewsets.GenericViewSet):
         for subject in ordered_subjects:
             data = {}
             data['subject'] = {'_id' : subject._id, 'title' : subject.title}
-            data['chats'] = []
+            data['items'] = []
             ads = Ad.objects.annotate(max = Max('chats__messages__createdAt')).filter(chats__isnull = False, chats__buyer__user = request.user, book__subject = subject).order_by('pk').order_by('-max')
             for ad in ads:
                 data['chats'].append(RetrieveAdSerializer(ad, many = False).data)
