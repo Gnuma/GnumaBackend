@@ -91,7 +91,7 @@ class NotificationMessageSerializer(serializers.ModelSerializer):
 The following serializer are going to be used in the 'retrieveChat' endpoint.
 '''
 class RetrieveMessageSerializer(serializers.ModelSerializer):
-    user = serializers.RelatedField(source = 'user__user__username', many = False, read_only = True)
+    user = ChatGnumaUserSerializer(many = False, read_only = True)
     class Meta:
         model = Message
         fields = ('_id', 'createdAt', 'is_read', 'text', 'user')

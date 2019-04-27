@@ -185,7 +185,6 @@ class ChatsOperations(viewsets.GenericViewSet):
         response['sales'] = []
         null_ads = Ad.objects.filter(chats__isnull = True, seller__user = request.user).order_by('-createdAt')
         chat_ads = Ad.objects.annotate(max = Max('chats__messages__createdAt')).filter(chats__isnull = False, seller__user = request.user).order_by('pk').order_by('-max')
-        print('len1 : %d  len2 : %d' % (len(null_ads), len(chat_ads)))
         for ad in chat_ads:
             response['sales'].append(RetrieveAdSerializer(ad, many = False).data)
         for ad in null_ads:
