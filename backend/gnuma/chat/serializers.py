@@ -121,8 +121,13 @@ class RetrieveAdSerializer(serializers.ModelSerializer):
     # get sales chats. Order items by the last message.
     #
     def get_chats(self, ad):
-        chats = []
-        seller_chats = Chat.objects.annotate(max = Max('messages__createdAt')).filter(item = ad).order_by('pk').order_by('-max')
-        for chat in seller_chats:
-            chats.append(RetrieveChatSerializer(chat, many = False).data)
-        return chats
+        if not self.context.get('user', False):
+            chats = []
+            seller_chats = Chat.objects.annotate(max = Max('messages__createdAt')).filter(item = ad).order_by('pk').order_by('-max')
+            for chat in seller_chats:
+                chats.append(RetrieveChatSerializer(chat, many = False).data)
+            return chats
+        else:
+            user = self.context.get('user')
+            chat = Chat.objects.get(buyer__user = user, item = ad)
+            return RetrieveChatSerializer(chat, many = False).data
