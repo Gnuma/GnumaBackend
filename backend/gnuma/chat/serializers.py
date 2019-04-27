@@ -26,10 +26,11 @@ class ChatUserSerializer(serializers.ModelSerializer):
 
 class ChatGnumaUserSerializer(serializers.ModelSerializer):
     user = ChatUserSerializer(many = False, read_only = False)
+    _id = serializers.IntegerField(source = 'pk')
 
     class Meta:
         model = GnumaUser
-        fields = ('pk' , 'user')
+        fields = ('_id' , 'user')
 
 class ChatSerializer(serializers.ModelSerializer):
     buyer = ChatGnumaUserSerializer(read_only = True, many = False)
