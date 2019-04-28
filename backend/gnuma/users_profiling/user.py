@@ -22,8 +22,8 @@ from gnuma.users_profiling.itemAccess import BaseProfiling
 @authentication_classes([TokenAuthentication,])
 @permission_classes([IsAuthenticated, ])
 def whoami(request):
-    if not DoubleCheck(token = request.auth).is_valid():
-        return JsonResponse({'detail':'your token has expired!'}, status = status.HTTP_401_UNAUTHORIZED)
+    #if not DoubleCheck(token = request.auth).is_valid():
+    #    return JsonResponse({'detail':'your token has expired!'}, status = status.HTTP_401_UNAUTHORIZED)
 
     s = WhoAmISerializer(request.user, many = False)
     return JsonResponse(s.data, status = status.HTTP_200_OK, safe = False)
@@ -38,8 +38,8 @@ def whoami(request):
 @authentication_classes([TokenAuthentication,])
 @permission_classes([IsAuthenticated, ])
 def mailbox(request):
-    if not DoubleCheck(token = request.auth).is_valid():
-        return JsonResponse({'detail':'your token has expired!'}, status = status.HTTP_401_UNAUTHORIZED)
+    #if not DoubleCheck(token = request.auth).is_valid():
+    #    return JsonResponse({'detail':'your token has expired!'}, status = status.HTTP_401_UNAUTHORIZED)
 
     i = {'user' : request.user}
     instances = BaseProfiling.anynew(**i)

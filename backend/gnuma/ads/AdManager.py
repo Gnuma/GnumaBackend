@@ -112,8 +112,8 @@ class AdManager(viewsets.GenericViewSet):
     '''
     def create(self, request):
         user = GnumaUser.objects.get(user = request.user)
-        if not DoubleCheck(token = request.auth).is_valid():
-            return JsonResponse({'detail' : 'your token has expired'}, status = status.HTTP_401_UNAUTHORIZED)
+        #if not DoubleCheck(token = request.auth).is_valid():
+        #    return JsonResponse({'detail' : 'your token has expired'}, status = status.HTTP_401_UNAUTHORIZED)
 
 
         if user.level == "Free" and user.adsCreated == 10:
