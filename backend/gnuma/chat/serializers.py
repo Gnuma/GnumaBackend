@@ -105,7 +105,7 @@ class RetrieveChatSerializer(serializers.ModelSerializer):
         fields = ('_id', 'buyer', 'status', 'messages')
     
     def get_messages(self, chat):
-        messages = Message.objects.filter(chat = chat).order_by('createdAt')[:(self.PAGE_SIZE * self.context.get('page', 1))]
+        messages = Message.objects.filter(chat = chat).order_by('-createdAt')[:(self.PAGE_SIZE * self.context.get('page', 1))]
         return RetrieveMessageSerializer(messages, many = True).data
 
 class RetrieveAdSerializer(serializers.ModelSerializer):
