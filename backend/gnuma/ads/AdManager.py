@@ -203,7 +203,7 @@ class AdManager(viewsets.GenericViewSet):
         #
         # Delete all the notification related to this user and this item.
         #
-        if not isinstance(self.scope['user'], AnonymousUser):
+        if not isinstance(request.user, AnonymousUser):
             if not NotificationHandler.delete(item = ad, user = request.user):
                 print('ERROR ON RETRIEVE: %d - THE NOTIFICATION HAS NOT BEEN DELETED FROM THE DATABASE' & ad.pk)
         return JsonResponse(serializer.data, status = status.HTTP_200_OK, safe = False)
