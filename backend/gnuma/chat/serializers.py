@@ -146,14 +146,6 @@ class RetrieveAdSerializer(serializers.ModelSerializer):
 # NewChat serializers
 #
 
-class CreateChatSerializer(serializers.ModelSerializer):
-    buyer = ChatGnumaUserSerializer(many = False, read_only = True)
-    item = RetrieveChatAdSerializer(many = False, read_only = True)
-
-    class Meta:
-        model = Chat
-        fields = ('_id', 'item','buyer', 'status')
-
 class RetrieveChatAdSerializer(RetrieveAdSerializer):
 
     def __init__(self):
@@ -163,3 +155,11 @@ class RetrieveChatAdSerializer(RetrieveAdSerializer):
     class Meta:
         model = Ad
         fields = ('_id', 'seller','book', 'price',  'condition', 'image_ad')
+
+class CreateChatSerializer(serializers.ModelSerializer):
+    buyer = ChatGnumaUserSerializer(many = False, read_only = True)
+    item = RetrieveChatAdSerializer(many = False, read_only = True)
+
+    class Meta:
+        model = Chat
+        fields = ('_id', 'item','buyer', 'status')
