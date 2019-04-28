@@ -383,7 +383,27 @@ class AdManagerFails(APITestCase):
         print("The API has issued an %s status code: %s" % (str(response.status_code), response.content))
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+class InitUser(APITestCase):
+    
+    def setUp(self):
+        user = User.objects.create_user(username = 'Gnuma', email = 'test@test.it', password = 'test')
+        Token.objects.create(user = user, key = '12345')
+        Office.objects.create(name = 'Neumann', cap = '00100', level = Office.SP)
 
+    def test_init(self):
+        url = reverse('init-user')
+        data = {'key':'12345', 'classM': '5B', 'office': 'Neumann'}
+        response = self.client.post(url, data)
+        #
+        # See results.
+        #
+        print("DEBUG INFORMATIONS:")
+        for c in Class.objects.all():
+            print("Class: %s%s related to %s" % (c.grade, c.division, c.office.name))
+
+        for u in GnumaUser.objects.all():
+            print("Name: %s School: %s%s %s" % (u.user.username, u.classM.grade, u.classM.division, u.classM.office.name))
+        print('The server has issued a %s status code: %s' % (response.status_code,response.content))
     def test_create_bad_format(self):
         url = reverse('ad-list')
         self.client.credentials(HTTP_AUTHORIZATION = 'Token 12345')
@@ -534,4 +554,3 @@ class DoubleCheckTest(APITestCase):
 
     def setUp(self):
         pass
-

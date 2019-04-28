@@ -102,7 +102,7 @@ class ChatsHandling(viewsets.GenericViewSet):
         # Return chat informations
         #
 
-        return JsonResponse(CreateChatSerializer(chat, many = False, context = {'request' : request}), status = status.HTTP_201_CREATED, safe = False) 
+        return JsonResponse(CreateChatSerializer(chat, many = False, context = {'request' : request}).data, status = status.HTTP_201_CREATED, safe = False) 
 
     @action(detail = False, methods = ['post'])
     def confirmChat(self, request):
