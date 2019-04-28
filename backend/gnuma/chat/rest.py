@@ -19,7 +19,7 @@ from asgiref.sync import async_to_sync
 
 # local imports
 from .models import Chat, Message, Client
-from .serializers import ChatSerializer, NotificationMessageSerializer, NotificationChatSerializer, RetrieveAdSerializer
+from .serializers import CreateChatSerializer, ChatSerializer, NotificationMessageSerializer, NotificationChatSerializer, RetrieveAdSerializer
 from gnuma.models import Ad, GnumaUser
 
 '''
@@ -101,7 +101,8 @@ class ChatsHandling(viewsets.GenericViewSet):
         #
         # Return chat informations
         #
-        return JsonResponse(data['chat'], status = status.HTTP_201_CREATED, safe = False) 
+
+        return JsonResponse(CreateChatSerializer(chat, many = False) status = status.HTTP_201_CREATED, safe = False) 
 
     @action(detail = False, methods = ['post'])
     def confirmChat(self, request):
