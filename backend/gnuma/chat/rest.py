@@ -101,6 +101,21 @@ class ChatsHandling(viewsets.GenericViewSet):
         #
         return JsonResponse(data['chat'], status = status.HTTP_201_CREATED, safe = False) 
 
+    @action(detail = False, methods = ['post'])
+    def confirmChat(self, request):
+        if 'chat ' not in request.data:
+            return JsonResponse({'detail' : 'one or more arguments are missing!'}, status = status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            chat = Chat.objects.get(pk = request.data['chat'])
+        except Chat.DoesNotExist:
+             return JsonResponse({'detail' : 'the chat does not exist!'}, status = status.HTTP_400_BAD_REQUEST)
+        
+        chat.status = Chat.PENDING
+        chat.save()
+
+        return JsonResponse({'status' : 'chat confirmed!'}, status = status.HTTP_200_OK)
+
     '''
     This endpoint changes the status of the given chat from 'pending' to 'progress'.
 
