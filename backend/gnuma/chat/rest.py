@@ -54,6 +54,8 @@ class ChatsHandling(viewsets.GenericViewSet):
             return JsonResponse({'detail' : 'the item does not exist!'}, status = status.HTTP_400_BAD_REQUEST)
         
         buyer = GnumaUser.objects.get(user = request.user)
+        if buyer == item.seller:
+            return JsonResponse({'detail' : 'you cannot create a chat with yourself'}, status  = status.HTTP_409_CONFLICT)
         instance = {'buyer' : buyer, 'item' : item}
         #
         # If the chat already exists, the API return with an 409 status code
