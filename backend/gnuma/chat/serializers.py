@@ -148,7 +148,7 @@ class RetrieveAdSerializer(serializers.ModelSerializer):
 
 class RetrieveChatAdSerializer(RetrieveAdSerializer):
 
-    def __init__(self):
+    def __init__(self, instance=None, data=empty, **kwargs):
         del self.chats
         super.__init__()
     
