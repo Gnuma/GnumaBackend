@@ -142,3 +142,24 @@ class RetrieveAdSerializer(serializers.ModelSerializer):
             serialized_field.append(request.build_absolute_uri(image.image.url))
         
         return serialized_field
+#
+# NewChat serializers
+#
+
+class CreateChatSerializer(serializers.ModelSerializer):
+    buyer = ChatGnumaUserSerializer(many = False, read_only = True)
+    item = RetrieveChatAdSerializer(many = False, read_only = True)
+
+    class Meta:
+        model = Chat
+        fields = ('_id', 'item','buyer', 'status')
+
+class RetrieveChatAdSerializer(RetrieveAdSerializer):
+
+    def __init__(self):
+        del self.chats
+        super.__init__()
+    
+    class Meta:
+        model = Ad
+        fields = ('_id', 'seller','book', 'price',  'condition', 'image_ad')
