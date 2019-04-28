@@ -88,7 +88,7 @@ class ChatsHandling(viewsets.GenericViewSet):
         destination = item.seller.user
         data = {}
         data['type'] = 'newChat'
-        data['chat'] = NotificationChatSerializer(chat, many = False).data
+        data['chat'] = NotificationChatSerializer(chat, many = False, context = {'request' : request}).data
         try:
             channel_name = Client.objects.get(user = destination).channel_name
             channel_layer = get_channel_layer()
@@ -273,7 +273,7 @@ class ChatsOperations(viewsets.GenericViewSet):
             data['for'] = "sale"
             data['objectID'] = item.pk
         data['chatID'] = chat.pk
-        data['message'] = NotificationMessageSerializer(message, many = False).data
+        data['message'] = NotificationMessageSerializer(message, many = False, context = {'request' : request}).data
         try:
             client = Client.objects.get(user = destination)
             channel_name = client.channel_name
