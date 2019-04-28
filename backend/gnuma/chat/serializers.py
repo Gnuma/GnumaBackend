@@ -4,6 +4,7 @@ from django.db.models import Max
 
 # rest imports
 from rest_framework import serializers
+from rest_framework.fields import empty
 
 # local imports
 from .models import Chat, Message, Notification
