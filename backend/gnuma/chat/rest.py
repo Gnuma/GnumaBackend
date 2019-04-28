@@ -241,15 +241,19 @@ class ChatsOperations(viewsets.GenericViewSet):
         # Notification must be sent to the other user.
         #
         item = chat.item
+        data = {}
+        data['type'] = "NewMessage"
         if item.seller.user == request.user:
             #
             # I'm the seller
             #
             destination = chat.buyer.user
+            data['for'] = "shopping"
+            data['objectID'] = item.book.subject.pk
         else:
             destination = item.seller.user
-        data = {}
-        data['type'] = "NewMessage"
+            data['for'] = "sale"
+            data['objectID'] = item.pk
         data['chatID'] = chat.pk
         data['message'] = NotificationMessageSerializer(message, many = False).data
         try:
