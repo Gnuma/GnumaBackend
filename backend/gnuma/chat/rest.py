@@ -260,7 +260,7 @@ class ChatsOperations(viewsets.GenericViewSet):
         #
         item = chat.item
         data = {}
-        data['type'] = "NewMessage"
+        data['type'] = "newMessage"
         if item.seller.user == request.user:
             #
             # I'm the seller
