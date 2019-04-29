@@ -42,7 +42,7 @@ class GnumaUserSerializer(serializers.ModelSerializer):
 class SubjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subject
-        field = '__all__'
+        fields = '__all__'
 
 class BookSerializer(serializers.ModelSerializer):
     subject = SubjectSerializer(many = False, read_only = True)
