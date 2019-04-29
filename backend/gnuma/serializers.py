@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from rest_framework import serializers
 
 # local imports
-from .models import GnumaUser, Book, Office, Class, Ad, Queue_ads, ImageAd, Comment
+from .models import GnumaUser, Subject, Book, Office, Class, Ad, Queue_ads, ImageAd, Comment
 from .core.customFields import Base64ImageField
 
 
@@ -39,8 +39,13 @@ class GnumaUserSerializer(serializers.ModelSerializer):
         model = GnumaUser
         fields = '__all__'
 
+class SubjectSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Subject
+        field = '__all__'
 
 class BookSerializer(serializers.ModelSerializer):
+    subject = SubjectSerializer(many = False, read_only = True)
 
     class Meta:
         model = Book
