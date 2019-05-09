@@ -54,11 +54,12 @@ class Chat(models.Model):
 
 class Message(models.Model):
     _id = models.AutoField(primary_key = True)
-    user = models.ForeignKey(GnumaUser, on_delete = models.CASCADE)
+    user = models.ForeignKey(GnumaUser, on_delete = models.CASCADE, blank = True, null = True)
     chat = models.ForeignKey(Chat, on_delete = models.CASCADE, to_field = '_id' ,related_name = 'messages')
     text = models.CharField(max_length = 255)
     is_read = models.BooleanField()
     createdAt = models.DateTimeField(auto_now_add = True)
+    system = models.BooleanField(blank = True, default = False)
 
 class Client(models.Model):
     user = models.OneToOneField(User, on_delete = models.CASCADE)
@@ -83,4 +84,19 @@ class Notification(models.Model):
 
     def __str__(self):
         return self.notification
+
+class Offert(models.Model):
+    offert = models.FloatField()
+    is_buyer = models.BooleanField()
+    chat = models.ForeignKey(Chat, on_delete = True, related_name = 'offerts')
+    PENDING = 0
+    ACCEPTED = 1
+    REJECTED = 2
+    STATUS = {
+        (PENDING, 'Pending offert'),
+        (ACCEPTED, 'Offert accepted'),
+        (REJECTED, 'Offert rejected')
+    }
+    status = models.IntegerField(blank = True, choices = STATUS, default = PENDING)
+    createdAt = models.DateTimeField(auto_now_add = True)
 

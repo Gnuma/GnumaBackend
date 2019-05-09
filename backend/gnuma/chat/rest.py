@@ -18,8 +18,8 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
 # local imports
-from .models import Chat, Message, Client
-from .serializers import CreateChatSerializer, ChatSerializer, NotificationMessageSerializer, NotificationChatSerializer, RetrieveAdSerializer
+from .models import Chat, Message, Client, Offert
+from .serializers import CreateChatSerializer, ChatSerializer, NotificationMessageSerializer, NotificationChatSerializer, RetrieveAdSerializer, OffertSerializer
 from gnuma.models import Ad, GnumaUser
 
 '''
@@ -104,13 +104,18 @@ class ChatsHandling(viewsets.GenericViewSet):
 
         return JsonResponse(CreateChatSerializer(chat, many = False, context = {'request' : request}).data, status = status.HTTP_201_CREATED, safe = False) 
 
+    '''
+    This endpoint confirms the given chat.
+
+    STATUS : LOCAL -> PENDING
+    '''
     @action(detail = False, methods = ['post'])
     def confirmChat(self, request):
         if 'chat ' not in request.data:
             return JsonResponse({'detail' : 'one or more arguments are missing!'}, status = status.HTTP_400_BAD_REQUEST)
         
         try:
-            chat = Chat.objects.get(pk = request.data['chat'])
+            chat = Chat.objects.get(pk = request.data['chat'], buyer__user = request.user)
         except Chat.DoesNotExist:
              return JsonResponse({'detail' : 'the chat does not exist!'}, status = status.HTTP_400_BAD_REQUEST)
         
@@ -136,6 +141,9 @@ class ChatsHandling(viewsets.GenericViewSet):
         except Chat.DoesNotExist:
             return JsonResponse({'detail' : 'the chat does not exist!'}, status = status.HTTP_400_BAD_REQUEST)
         
+        if chat.item.seller.user != request.user:
+            return  JsonResponse({'detail' : 'you cannot perform this operation!'})
+
         chat.status = Chat.PROGRESS
         chat.save()
         #
@@ -159,9 +167,12 @@ class ChatsHandling(viewsets.GenericViewSet):
             chat = Chat.objects.get(pk = request.data['chat'])
         except Chat.DoesNotExist:
             return JsonResponse({'detail' : 'the chat does not exist!'}, status = status.HTTP_400_BAD_REQUEST)
+
+        if chat.item.seller.user != request.user:
+            return  JsonResponse({'detail' : 'you cannot perform this operation!'})
         
         #
-        # rejected not delete.
+        # rejected not deleted.
         #
         chat.status = Chat.REJECTED
         chat.save()
@@ -283,3 +294,103 @@ class ChatsOperations(viewsets.GenericViewSet):
             pass
 
         return JsonResponse({'pk' : message.pk}, status = status.HTTP_201_CREATED)
+
+    @action(detail = False, methods = ['post'])
+    def createOffert(self, request):
+        if 'chat' not in request.data or 'offert' not in request.data:
+            return JsonResponse({'detail' : 'one or more arguments are missing'}, status = status.HTTP_400_BAD_REQUEST)
+        
+        chat = Chat.objects.get(_id = request.data['chat'])
+        if chat.buyer.user != request.user and chat.item.seller.user != request.user:
+            return JsonResponse({'detail' : 'you cannot create an offert!'}, status = status.HTTP_400_BAD_REQUEST)
+        
+        if chat.buyer.user == request.user:
+            is_buyer = True
+        else:
+            is_buyer = False
+        
+        instance = {'offert' : request.data['offert'], 'chat' : request.data['chat'], 'is_buyer' : is_buyer}
+        serializer = OffertSerializer(data = instance)
+
+        try:
+            serializer.is_valid(raise_exception = True)
+        except Exception as e:
+            print('Exception occured creating a new offert : %s' % str(e))
+        
+        newOffert = serializer.save()
+        #
+        # Create a new message
+        #
+        text = request.user.username + " ha inviato un'offerta: " + newOffert.offert + "€" 
+        systemMessage = Message.objects.create(chat = chat, system = True, text = text)
+        systemMessage.save()
+
+        #
+        # Notification ...
+        #
+
+        return  JsonResponse({'detail' : 'offert sent!'}, status = status.HTTP_201_CREATED)
+
+    @action(detail = False, methods = ['post'])
+    def acceptOffert(self, request):
+        if 'offert' not in request.data:
+            return JsonResponse({'detail' : 'one or more arguments are missing'})
+        
+        try:
+            offert = Offert.objects.get(pk = request.data['offert'])
+        except Exception as e:
+            return JsonResponse({'detail' : 'offert does not exist!'}, status = status.HTTP_400_BAD_REQUEST)
+
+        if offert.is_buyer and request.user != offert.chat.item.seller.user:
+            return JsonResponse({'detail' : 'you cannot perform this operation'}, status = status.HTTP_400_BAD_REQUEST)
+        elif not offert.is_buyer and request.user != offert.chat.buyer:
+            return JsonResponse({'detail' : 'you cannot perform this operation'}, status = status.HTTP_400_BAD_REQUEST)
+        
+        offert.status = Offert.ACCEPTED
+        offert.save()
+        return JsonResponse({'detail' : 'offert accepted!'}, status = status.HTTP_200_OK)
+    
+    @action(detail = False, methods = ['post'])
+    def rejectOffert(self, request):
+        if 'offert' not in request.data:
+            return JsonResponse({'detail' : 'one or more arguments are missing'})
+        
+        try:
+            offert = Offert.objects.get(pk = request.data['offert'])
+        except Exception as e:
+            return JsonResponse({'detail' : 'offert does not exist!'}, status = status.HTTP_400_BAD_REQUEST)
+
+        if offert.is_buyer and request.user != offert.chat.item.seller.user:
+            return JsonResponse({'detail' : 'you cannot perform this operation'}, status = status.HTTP_400_BAD_REQUEST)
+        elif not offert.is_buyer and request.user != offert.chat.buyer:
+            return JsonResponse({'detail' : 'you cannot perform this operation'}, status = status.HTTP_400_BAD_REQUEST)
+
+        offert.status = Offert.REJECTED
+        offert.save()
+        return JsonResponse({'detail' : 'offert accepted!'}, status = status.HTTP_200_OK)
+
+    @action(detail = False, methods = ['post'])
+    def readMessages(self, request):
+        if 'from' not in request.data or 'to' not in request.data or 'chat' not in request.data:
+            return JsonResponse({'detail' : 'one or more arguments are missing!'}, status = status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            chat = Chat.objects.get(_id = request.data['chat'])
+        except Exception as e:
+            print('Error occured in readMessages : %s' % str(e))
+            return JsonResponse({'detail' : 'the chat does not exist!'}, status = status.HTTP_400_BAD_REQUEST)
+        
+        if request.user == chat.item.seller.user:
+            targetUser = chat.buyer
+        elif request.user == chat.buyer.user:
+            targetUser = chat.item.seller.user
+        else:
+            return JsonResponse({'detail' : 'you cannot perform this operation!'}, status = status.HTTP_400_BAD_REQUEST)
+
+        messages = Message.objects.filter(chat = chat, _id__gte = request.data['from'], _id__lte = request.data['to'], user = targetUser)
+
+        for m in messages:
+            m.is_read = True
+            m.save()
+
+        return JsonResponse({'detail' : 'done!'}, status = status.HTTP_200_OK)

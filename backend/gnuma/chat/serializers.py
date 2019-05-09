@@ -7,7 +7,7 @@ from rest_framework import serializers
 from rest_framework.fields import empty
 
 # local imports
-from .models import Chat, Message, Notification
+from .models import Chat, Message, Notification, Offert
 from gnuma.models import GnumaUser, Ad, Comment, ImageAd
 from gnuma.serializers import AdSerializer, AnswerSerializer, CommentSerializer, BookSerializer
 
@@ -95,7 +95,7 @@ class RetrieveMessageSerializer(serializers.ModelSerializer):
     user = ChatGnumaUserSerializer(many = False, read_only = True)
     class Meta:
         model = Message
-        fields = ('_id', 'createdAt', 'is_read', 'text', 'user')
+        fields = ('_id', 'createdAt', 'is_read', 'text', 'user', 'system')
 
 class RetrieveChatSerializer(serializers.ModelSerializer):
     buyer = ChatGnumaUserSerializer(many = False, read_only = True)
@@ -164,3 +164,9 @@ class CreateChatSerializer(serializers.ModelSerializer):
     class Meta:
         model = Chat
         fields = ('_id', 'item','buyer', 'status')
+    
+class OffertSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Offert
+        fields = '__all__'
