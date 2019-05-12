@@ -35,9 +35,11 @@ class ClassSerializer(serializers.ModelSerializer):
 class GnumaUserSerializer(serializers.ModelSerializer):
     user = UserSerializer(many  = False, read_only = True)
     classM = ClassSerializer(many = False, read_only = True)
+    _id = serializers.IntegerField(source = 'pk')
+
     class Meta:
         model = GnumaUser
-        fields = '__all__'
+        fields = ('_id', 'user', 'classM')
 
 class SubjectSerializer(serializers.ModelSerializer):
     class Meta:
