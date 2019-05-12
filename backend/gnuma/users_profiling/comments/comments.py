@@ -30,6 +30,7 @@ class CommentHandler(object):
             item_pk = kwargs['item']
             user = GnumaUser.objects.get(user = kwargs['user'])
             content = kwargs['content']
+            request = kwargs['request']
             item = Ad.objects.get(pk = item_pk)
         except KeyError:
             raise
@@ -89,6 +90,7 @@ class CommentHandler(object):
             comment_pk = kwargs['comment']
             user = GnumaUser.objects.get(user = kwargs['user'])
             content = kwargs['content']
+            request = kwargs['request']
             comment = Comment.objects.get(pk = comment_pk)
         except KeyError:
             raise
@@ -125,7 +127,7 @@ class CommentHandler(object):
         else:
             data['for'] = 'sale'
             destination = comment.item.seller.user
-        data['answer'] = NotificationAnswerSerializer(newAnswer).data
+        data['answer'] = NotificationAnswerSerializer(newAnswer, context = {'request' : request}).data
         try:
             channel_name = Client.objects.get(user = destination).channel_name
             channel_layer = get_channel_layer()
