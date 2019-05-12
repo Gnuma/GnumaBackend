@@ -58,17 +58,12 @@ class CommentHandler(object):
             #
             data = {}
             data['type'] = 'newComment'
-            data['comment'] = NotificationCommentSerializer(newComment).data
+            data['comment'] = NotificationCommentSerializer(newComment, context = {'request' : request}).data
             try:
                 channel_name = Client.objects.get(user = item.seller.user).channel_name
                 channel_layer = get_channel_layer()
                 async_to_sync(channel_layer.send)(channel_name, {"type" : "notification.send", "content" : data})
             except Client.DoesNotExist:
-                #
-                # The user is not online.
-                # Just insert the notification into the database.
-                #
-                # To be implemented
                 pass
         #
         # Save the notification in the db.
