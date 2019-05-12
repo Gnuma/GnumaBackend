@@ -36,7 +36,7 @@ class CommentsEndpoints(viewsets.GenericViewSet):
             return JsonResponse({'detail' : 'one or more arguments are missing!'}, status = status.HTTP_400_BAD_REQUEST)
         
         if request.data['type'] == 'comment':
-            instance = {'item' : request.data['item'], 'content' : request.data['content'], 'user' : request.user}
+            instance = {'item' : request.data['item'], 'content' : request.data['content'], 'user' : request.user, 'request' : request}
             try:
                 comment = CommentHandler.create(**instance)
                 return JsonResponse({'pk' : comment.pk, 'timestamp' : comment.createdAt}, status = status.HTTP_201_CREATED)
@@ -47,7 +47,7 @@ class CommentsEndpoints(viewsets.GenericViewSet):
             #
             # In this case 'item' represents the parent comment.
             #
-            instance = {'comment' : request.data['item'], 'content' : request.data['content'], 'user' : request.user}
+            instance = {'comment' : request.data['item'], 'content' : request.data['content'], 'user' : request.user, 'request' : request}
             try:
                 answer = CommentHandler.create_answer(**instance)
                 return JsonResponse({'pk' : answer.pk, 'timestamp' : answer.createdAt}, status = status.HTTP_201_CREATED)
