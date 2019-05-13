@@ -32,7 +32,9 @@ class Chat(WebsocketConsumer):
             # send pending notifications back to the user.
             # must be tested
             #
-            notifications = NotificationHandler.retrieve(user = self.scope['user'])
+            notifications = {}
+            notifications['type'] = "retrieveNotifications"
+            notifications = {**notifications, **NotificationHandler.retrieve(user = self.scope['user'])}
             if not notifications:
                 #
                 # Must be changed
