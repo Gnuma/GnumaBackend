@@ -72,7 +72,7 @@ class Notification(models.Model):
     _id = models.AutoField(primary_key = True)
     destination = models.ForeignKey(User, on_delete = models.CASCADE)
     item = models.ForeignKey(Ad, on_delete = models.CASCADE)
-    notification = models.TextField(max_length = 500)
+    notification = models.TextField(max_length = 2000)
     createdAt = models.DateTimeField(auto_now_add = True)
     #
     # Allowed types.
