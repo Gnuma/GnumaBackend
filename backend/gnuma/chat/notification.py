@@ -61,6 +61,7 @@ class NotificationHandler(object):
         response['notifications'] = []
         for n in data:
             response['notifications'].append(json.loads(n.notification))
+            n.delete()  # ??
         
         return response
 
