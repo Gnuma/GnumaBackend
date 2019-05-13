@@ -80,7 +80,7 @@ class AdSerializer(serializers.ModelSerializer):
     book = BookSerializer(many = False, read_only = True)
     seller = GnumaUserSerializer(many = False, read_only = True)
     image_ad = serializers.SerializerMethodField()
-    comment_ad = CommentSerializer(many = True, read_only = True)
+    comment_ad = serializers.SerializerMethodField()
 
     class Meta:
         model = Ad
@@ -95,6 +95,15 @@ class AdSerializer(serializers.ModelSerializer):
             serialized_field.append(request.build_absolute_uri(image.image.url))
         
         return serialized_field
+    
+    def get_comment_ad(self, ad):
+        comments = Comment.objects.filter(item = ad).order_by('-createdAt')
+        serialized_field = []
+
+        for c in comments:
+            serialized_field.append(CommentSerializer(c, many = False).data)
+        
+        return serialized_data
 
 
 class QueueAdsSerializer(serializers.ModelSerializer):
