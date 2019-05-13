@@ -103,7 +103,7 @@ class AdSerializer(serializers.ModelSerializer):
         for c in comments:
             serialized_field.append(CommentSerializer(c, many = False).data)
         
-        return serialized_data
+        return serialized_field
 
 
 class QueueAdsSerializer(serializers.ModelSerializer):
