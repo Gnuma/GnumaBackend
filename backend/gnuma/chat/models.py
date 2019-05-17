@@ -57,7 +57,7 @@ class Message(models.Model):
     user = models.ForeignKey(GnumaUser, on_delete = models.CASCADE, blank = True, null = True)
     chat = models.ForeignKey(Chat, on_delete = models.CASCADE, to_field = '_id' ,related_name = 'messages')
     text = models.CharField(max_length = 255)
-    is_read = models.BooleanField()
+    is_read = models.BooleanField(blank = True, default = False)
     createdAt = models.DateTimeField(auto_now_add = True)
     system = models.BooleanField(blank = True, default = False)
 
