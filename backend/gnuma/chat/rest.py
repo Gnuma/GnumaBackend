@@ -19,7 +19,7 @@ from asgiref.sync import async_to_sync
 
 # local imports
 from .models import Chat, Message, Client, Offert
-from .serializers import CreateChatSerializer, ChatSerializer, NotificationMessageSerializer, NotificationChatSerializer, RetrieveAdSerializer, OffertSerializer
+from .serializers import CreateChatSerializer, ChatSerializer, NotificationMessageSerializer, NotificationChatSerializer, RetrieveAdSerializer, OffertSerializer, RetrieveMessageSerializer
 from gnuma.models import Ad, GnumaUser
 
 '''
@@ -321,14 +321,31 @@ class ChatsOperations(viewsets.GenericViewSet):
         #
         # Create a new message
         #
-        text = request.user.username + " ha inviato un'offerta: " + newOffert.offert + "€" 
+        text = request.user.username + " ha inviato un'offerta: " + str(newOffert.offert) + "€" 
         systemMessage = Message.objects.create(chat = chat, system = True, text = text)
         systemMessage.save()
 
         #
         # Notification ...
         #
+        data = {}
+        data['type'] = 'newOffert'
+        if is_buyer:
+            data['for'] = 'sale'
+            destination = chat.item.seller.user
+        else:
+            data['for'] = 'shopping'
+            destination = chat.buyer.user
+        data['offert'] = OffertSerializer(newOffert)
+        data['message'] = RetrieveMessageSerializer(systemMessage) # <--------------------- using RetrieveMessageSerializer
 
+        try:
+            client = Client.objects.get(user = destination)
+            channel_name = client.channel_name
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.send)(channel_name, {"type" : "notification.send", "content" : data})
+        except Client.DoesNotExist:
+            pass
         return  JsonResponse({'detail' : 'offert sent!'}, status = status.HTTP_201_CREATED)
 
     @action(detail = False, methods = ['post'])
