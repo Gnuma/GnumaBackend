@@ -346,7 +346,7 @@ class ChatsOperations(viewsets.GenericViewSet):
             async_to_sync(channel_layer.send)(channel_name, {"type" : "notification.send", "content" : data})
         except Client.DoesNotExist:
             pass
-        return  JsonResponse({'detail' : 'offert sent!'}, status = status.HTTP_201_CREATED)
+        return  JsonResponse({'pk' : newOffert.pk}, status = status.HTTP_201_CREATED)
 
     @action(detail = False, methods = ['post'])
     def acceptOffert(self, request):
