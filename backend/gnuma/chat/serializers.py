@@ -100,24 +100,32 @@ class RetrieveMessageSerializer(serializers.ModelSerializer):
 class RetrieveChatSerializer(serializers.ModelSerializer):
     buyer = ChatGnumaUserSerializer(many = False, read_only = True)
     messages = serializers.SerializerMethodField()
+    hasNews = serializers.SerializerMethodField()
     PAGE_SIZE = 50
+    
     class Meta:
         model = Chat
-        fields = ('_id', 'buyer', 'status', 'messages')
+        fields = ('_id', 'buyer', 'hasNews', 'status', 'messages')
     
     def get_messages(self, chat):
         messages = Message.objects.filter(chat = chat).order_by('-createdAt')[:(self.PAGE_SIZE * self.context.get('page', 1))]
         return RetrieveMessageSerializer(messages, many = True).data
+
+    def get_hasNews(self, chat):
+        messages = Message.objects.filter(chat = chat, is_read = False)
+        return messages.count()
+
 
 class RetrieveAdSerializer(serializers.ModelSerializer):
     _id = serializers.IntegerField(source = 'pk')
     book = BookSerializer(many = False, read_only = True)
     chats = serializers.SerializerMethodField()
     seller = ChatGnumaUserSerializer(many = False, read_only = True)
+    newsCount = serializers.SerializerMethodField()
     image_ad = serializers.SerializerMethodField()
     class Meta:
         model = Ad
-        fields = ('_id', 'seller','book', 'price', 'chats', 'condition', 'image_ad')
+        fields = ('_id', 'seller','book', 'newsCount', 'price', 'chats', 'condition', 'image_ad')
 
     #
     # get sales chats. Order items by the last message.
@@ -143,6 +151,15 @@ class RetrieveAdSerializer(serializers.ModelSerializer):
             serialized_field.append(request.build_absolute_uri(image.image.url))
         
         return serialized_field
+    
+    def get_newsCount(self, ad):
+        chats = Chat.objects.filter(item = ad)
+        counter = 0
+        for chat in chats:
+            not_read_messages = Message.objects.filter(chat = chat, is_read = False)
+            if not_read_messages:
+                counter += 1
+        return counter
 #
 # NewChat serializers
 #
