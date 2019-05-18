@@ -336,8 +336,8 @@ class ChatsOperations(viewsets.GenericViewSet):
         else:
             data['for'] = 'shopping'
             destination = chat.buyer.user
-        data['offert'] = OffertSerializer(newOffert)
-        data['message'] = RetrieveMessageSerializer(systemMessage) # <--------------------- using RetrieveMessageSerializer
+        data['offert'] = OffertSerializer(newOffert).data
+        data['message'] = RetrieveMessageSerializer(systemMessage).data # <--------------------- using RetrieveMessageSerializer
 
         try:
             client = Client.objects.get(user = destination)
