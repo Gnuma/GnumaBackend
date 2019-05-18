@@ -97,15 +97,30 @@ class RetrieveMessageSerializer(serializers.ModelSerializer):
         model = Message
         fields = ('_id', 'createdAt', 'is_read', 'text', 'user', 'system')
 
+class RetrieveOffertSerializer(serializers.ModelSerializer):
+    creator = serializers.SerializerMethodField()
+    _id = serializers.IntegerField(source = 'pk')
+    value = serializers.IntegerField(source = 'offert')
+    class Meta:
+        model = Offert
+        fields = ('_id', 'creator', 'createdAt', 'value', 'status')
+
+    def get_creator(self, offert):
+        if offert.is_buyer:
+            return ChatGnumaUserSerializer(offert.chat.buyer, many = False).data
+        else:
+            return ChatGnumaUserSerializer(offert.chat.item.seller, many = False).data
+
 class RetrieveChatSerializer(serializers.ModelSerializer):
     buyer = ChatGnumaUserSerializer(many = False, read_only = True)
     messages = serializers.SerializerMethodField()
     hasNews = serializers.SerializerMethodField()
+    offerts = RetrieveOffertSerializer(many = True, read_only = True)
     PAGE_SIZE = 50
     
     class Meta:
         model = Chat
-        fields = ('_id', 'buyer', 'hasNews', 'status', 'messages')
+        fields = ('_id', 'buyer', 'hasNews', 'status', 'messages', 'offerts')
     
     def get_messages(self, chat):
         messages = Message.objects.filter(chat = chat).order_by('-createdAt')[:(self.PAGE_SIZE * self.context.get('page', 1))]
