@@ -223,11 +223,11 @@ class ChatsOperations(viewsets.GenericViewSet):
         #
         response['shopping'] = []
         chat_ads = Ad.objects.annotate(max = Max('chats__messages__createdAt')).filter(chats__isnull = False, chats__buyer__user = request.user).order_by('pk').order_by('-max')
-        ordered_subjects = []
+        sorted_subjects = []
         for ad in chat_ads:
-            if ad.book.subject not in ordered_subjects:
-                ordered_subjects.append(ad.book.subject)
-        for subject in ordered_subjects:
+            if ad.book.subject not in sorted_subjects:
+                sorted_subjects.append(ad.book.subject)
+        for subject in sorted_subjects:
             data = {}
             data['subject'] = {'_id' : subject._id, 'title' : subject.title}
             data['items'] = []
