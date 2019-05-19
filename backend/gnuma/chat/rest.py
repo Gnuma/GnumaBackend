@@ -360,7 +360,7 @@ class ChatsOperations(viewsets.GenericViewSet):
 
         if offert.is_buyer and request.user != offert.chat.item.seller.user:
             return JsonResponse({'detail' : 'you cannot perform this operation'}, status = status.HTTP_400_BAD_REQUEST)
-        elif not offert.is_buyer and request.user != offert.chat.buyer:
+        elif not offert.is_buyer and request.user != offert.chat.buyer.user:
             return JsonResponse({'detail' : 'you cannot perform this operation'}, status = status.HTTP_400_BAD_REQUEST)
         
         offert.status = Offert.ACCEPTED
@@ -370,7 +370,7 @@ class ChatsOperations(viewsets.GenericViewSet):
     @action(detail = False, methods = ['post'])
     def rejectOffert(self, request):
         if 'offert' not in request.data:
-            return JsonResponse({'detail' : 'one or more arguments are missing'})
+            return JsonResponse({'detail' : 'one or more arguments are missing'}, status = status.HTTP_400_BAD_REQUEST)
         
         try:
             offert = Offert.objects.get(pk = request.data['offert'])
@@ -379,7 +379,7 @@ class ChatsOperations(viewsets.GenericViewSet):
 
         if offert.is_buyer and request.user != offert.chat.item.seller.user:
             return JsonResponse({'detail' : 'you cannot perform this operation'}, status = status.HTTP_400_BAD_REQUEST)
-        elif not offert.is_buyer and request.user != offert.chat.buyer:
+        elif not offert.is_buyer and request.user != offert.chat.buyer.user:
             return JsonResponse({'detail' : 'you cannot perform this operation'}, status = status.HTTP_400_BAD_REQUEST)
 
         offert.status = Offert.REJECTED
@@ -400,7 +400,7 @@ class ChatsOperations(viewsets.GenericViewSet):
         if request.user == chat.item.seller.user:
             targetUser = chat.buyer
         elif request.user == chat.buyer.user:
-            targetUser = chat.item.seller.user
+            targetUser = chat.item.seller
         else:
             return JsonResponse({'detail' : 'you cannot perform this operation!'}, status = status.HTTP_400_BAD_REQUEST)
 
