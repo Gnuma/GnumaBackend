@@ -351,7 +351,7 @@ class ChatsOperations(viewsets.GenericViewSet):
     @action(detail = False, methods = ['post'])
     def acceptOffert(self, request):
         if 'offert' not in request.data:
-            return JsonResponse({'detail' : 'one or more arguments are missing'})
+            return JsonResponse({'detail' : 'one or more arguments are missing'}, status = status.HTTP_400_BAD_REQUEST)
         
         try:
             offert = Offert.objects.get(pk = request.data['offert'])
